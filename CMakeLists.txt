@@ -18,6 +18,10 @@ set(PROJECT_SOURCES
         src/main.cpp
         src/mainwindow.cpp
         include/mainwindow.h
+        src/startpage.cpp
+        include/startpage.h
+        src/profilepage.cpp
+        include/profilepage.h
         src/mainwindow.ui
         ${TS_FILES}
 )
