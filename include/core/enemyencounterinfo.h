@@ -4,6 +4,8 @@
 #include <QString>
 #include <QVector>
 
+#include "core/unittemplate.h"
+
 struct EnemyEncounterInfo
 {
     QString formationId;
@@ -13,6 +15,19 @@ struct EnemyEncounterInfo
     QString styleDescription;
 };
 
+struct EnemyFormationUnit
+{
+    UnitTemplate unitTemplate;
+    BoardPosition position;
+};
+
+struct EnemyFormation
+{
+    EnemyEncounterInfo info;
+    QVector<EnemyFormationUnit> enemyUnits;
+};
+
 QVector<EnemyEncounterInfo> enemyEncounterPoolForRound(int round);
+EnemyFormation enemyFormationForId(const QString &formationId);
 
 #endif // ENEMYENCOUNTERINFO_H

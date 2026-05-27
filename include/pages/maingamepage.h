@@ -24,6 +24,7 @@ public:
 
 signals:
     void startBattleClicked();
+    void returnShopClicked();
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -52,6 +53,7 @@ private:
     QLabel *selectedStatsLabel;
     QLabel *selectedTraitsLabel;
     QPushButton *actionButton;
+    QPushButton *returnShopButton;
     QTimer *battleTimer;
     BoardWidget *boardWidget;
     BenchWidget *benchWidget;

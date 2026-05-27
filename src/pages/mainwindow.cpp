@@ -16,7 +16,6 @@
 #include "./ui_mainwindow.h"
 
 #include <QApplication>
-#include <QRandomGenerator>
 #include <QStackedWidget>
 #include <QStatusBar>
 #include <QTimer>
@@ -111,8 +110,12 @@ MainWindow::MainWindow(QWidget *parent)
         prepareMainGamePage();
         pageManager->switchTo(PageId::MainGame);
         QTimer::singleShot(500, this, [this]() {
-            simulateBattleAndShowResult();
+            resolveBattleAndShowResult();
         });
+    });
+    connect(mainGamePage, &MainGamePage::returnShopClicked, this, [this]() {
+        prepareShopPage();
+        pageManager->switchTo(PageId::Shop);
     });
 
     connect(roundResultPage, &RoundResultPage::continueClicked, this, [this]() {
@@ -202,15 +205,9 @@ void MainWindow::startNewSession()
     pageManager->switchTo(PageId::InitInfo);
 }
 
-void MainWindow::simulateBattleAndShowResult()
+void MainWindow::resolveBattleAndShowResult()
 {
-    BattleResult result;
-    const bool forceFinalWin = gameManager->currentRound() >= gameManager->finalRound();
-    result.win = forceFinalWin || QRandomGenerator::global()->bounded(100) < 70;
-    result.damage = result.win ? 0 : QRandomGenerator::global()->bounded(12, 28);
-    result.rewardGold = result.win ? QRandomGenerator::global()->bounded(6, 11)
-                                   : QRandomGenerator::global()->bounded(2, 5);
-
+    const BattleResult result = gameManager->calculateBattleResult();
     gameManager->saveBattleResult(result);
     prepareRoundResultPage();
     pageManager->switchTo(PageId::RoundResult);

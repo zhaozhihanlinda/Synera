@@ -53,7 +53,7 @@ private:
     void prepareMainGamePage();
     void prepareRoundResultPage();
     void startNewSession();
-    void simulateBattleAndShowResult();
+    void resolveBattleAndShowResult();
 };
 
 #endif // MAINWINDOW_H

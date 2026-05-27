@@ -1,10 +1,11 @@
 #include "core/gamemanager.h"
 
-#include <memory>
-
 #include "core/playertemplatelibrary.h"
 #include "core/unit.h"
 #include "core/unittemplate.h"
+
+#include <QtGlobal>
+
 GameManager::GameManager(QObject *parent)
     : QObject(parent)
     , m_playerHp(100)
@@ -37,32 +38,16 @@ void GameManager::initNewGame()
     drawCurrentRoundEncounter();
 
     const QVector<UnitTemplate> starterTemplates = defaultStarterBenchTemplates();
-    const UnitTemplate abyssServant{
-        QStringLiteral("abyss_servant"),
-        QStringLiteral("深渊侍从"),
-        {QStringLiteral("虚空")},
-        0,
-        QStringLiteral("敌方测试单位"),
-        260,
-        26,
-        1,
-        1.0,
-        50,
-        10,
-        5
-    };
-
     for (int index = 0; index < starterTemplates.size(); ++index) {
         m_board.addBenchUnit(starterTemplates.at(index).createUnit(
             QStringLiteral("player_unit_%1").arg(index + 1, 3, 10, QChar('0')),
             ControllerSide::PlayerCtrl));
     }
-    m_board.placeUnit(abyssServant.createUnit(QStringLiteral("enemy_unit_001"), ControllerSide::EnemyCtrl), 1, 3);
-    m_board.placeUnit(abyssServant.createUnit(QStringLiteral("enemy_unit_002"), ControllerSide::EnemyCtrl), 1, 4);
 }
 
 void GameManager::nextRound()
 {
+    clearEnemyUnits();
     m_roundState.beginDeployPhase(m_roundState.currentRound + 1);
     drawCurrentRoundEncounter();
 }
@@ -80,6 +65,7 @@ QVector<EnemyEncounterInfo> GameManager::currentRoundEncounterPool() const
 void GameManager::setCurrentEncounterInfo(const EnemyEncounterInfo &info)
 {
     m_currentEncounterInfo = info;
+    loadCurrentEncounterFormation();
 }
 
 void GameManager::setPhase(GamePhase phase)
@@ -232,6 +218,18 @@ void GameManager::tickBattleTimer()
     m_roundState.tickBattleTimer();
 }
 
+BattleResult GameManager::calculateBattleResult() const
+{
+    BattleResult result;
+    const int playerPower = combatPowerForSide(ControllerSide::PlayerCtrl);
+    const int enemyPower = combatPowerForSide(ControllerSide::EnemyCtrl);
+
+    result.win = playerPower >= enemyPower;
+    result.damage = result.win ? 0 : qMax(4, (enemyPower - playerPower) / 80);
+    result.rewardGold = result.win ? 8 + m_roundState.currentRound : 3;
+    return result;
+}
+
 void GameManager::saveBattleResult(const BattleResult &result)
 {
     m_lastBattleResult = result;
@@ -285,4 +283,49 @@ int GameManager::currentRound() const
 int GameManager::finalRound() const
 {
     return m_roundState.finalRound;
+}
+
+void GameManager::clearEnemyUnits()
+{
+    for (int row = 0; row < m_board.rowCount(); ++row) {
+        for (int col = 0; col < m_board.columnCount(); ++col) {
+            const UnitPtr unit = m_board.unitAt(row, col);
+            if (unit && unit->owner() == ControllerSide::EnemyCtrl) {
+                m_board.removeUnit(row, col);
+            }
+        }
+    }
+}
+
+void GameManager::loadCurrentEncounterFormation()
+{
+    clearEnemyUnits();
+
+    const EnemyFormation formation = enemyFormationForId(m_currentEncounterInfo.formationId);
+    for (int index = 0; index < formation.enemyUnits.size(); ++index) {
+        const EnemyFormationUnit &formationUnit = formation.enemyUnits.at(index);
+        m_board.placeUnit(formationUnit.unitTemplate.createUnit(
+                              QStringLiteral("%1_enemy_%2")
+                                  .arg(m_currentEncounterInfo.formationId)
+                                  .arg(index + 1, 2, 10, QChar('0')),
+                              ControllerSide::EnemyCtrl),
+                          formationUnit.position.row,
+                          formationUnit.position.col);
+    }
+}
+
+int GameManager::combatPowerForSide(ControllerSide side) const
+{
+    int power = 0;
+    for (int row = 0; row < m_board.rowCount(); ++row) {
+        for (int col = 0; col < m_board.columnCount(); ++col) {
+            const UnitPtr unit = m_board.unitAt(row, col);
+            if (unit && unit->owner() == side && unit->isAlive()) {
+                power += unit->hp();
+                power += unit->atk() * 8;
+                power += unit->range() * 15;
+            }
+        }
+    }
+    return power;
 }

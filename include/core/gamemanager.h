@@ -49,6 +49,7 @@ public:
     void beginBattlePhase();
     void tickBattleTimer();
 
+    BattleResult calculateBattleResult() const;
     void saveBattleResult(const BattleResult &result);
     BattleResult lastBattleResult() const;
 
@@ -63,6 +64,10 @@ public:
     int finalRound() const;
 
 private:
+    void clearEnemyUnits();
+    void loadCurrentEncounterFormation();
+    int combatPowerForSide(ControllerSide side) const;
+
     PlayerProfile m_profile;
     Board m_board;
     int m_playerHp;

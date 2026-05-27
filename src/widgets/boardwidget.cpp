@@ -40,6 +40,7 @@ QString avatarText(const UnitPtr &unit)
 BoardWidget::BoardWidget(QWidget *parent)
     : QWidget(parent)
     , m_board(nullptr)
+    , m_enemyUnitsVisible(true)
     , m_pendingPlacementUnit(nullptr)
 {
     setMinimumSize(UiScale::size(640, 640));
@@ -55,6 +56,22 @@ void BoardWidget::setBoard(Board *board)
         || !m_board->unitAt(m_selectedPosition.row, m_selectedPosition.col))) {
         m_selectedPosition = BoardPosition{};
         emit selectionChanged();
+    }
+    update();
+}
+
+void BoardWidget::setEnemyUnitsVisible(bool visible)
+{
+    if (m_enemyUnitsVisible == visible) {
+        return;
+    }
+    m_enemyUnitsVisible = visible;
+    if (!m_enemyUnitsVisible && m_board && m_selectedPosition.isValid()) {
+        const UnitPtr unit = m_board->unitAt(m_selectedPosition.row, m_selectedPosition.col);
+        if (unit && unit->owner() == ControllerSide::EnemyCtrl) {
+            m_selectedPosition = BoardPosition{};
+            emit selectionChanged();
+        }
     }
     update();
 }
@@ -100,7 +117,11 @@ UnitPtr BoardWidget::selectedUnit() const
     if (!m_board || !m_selectedPosition.isValid()) {
         return nullptr;
     }
-    return m_board->unitAt(m_selectedPosition.row, m_selectedPosition.col);
+    const UnitPtr unit = m_board->unitAt(m_selectedPosition.row, m_selectedPosition.col);
+    if (unit && unit->owner() == ControllerSide::EnemyCtrl && !m_enemyUnitsVisible) {
+        return nullptr;
+    }
+    return unit;
 }
 
 void BoardWidget::paintEvent(QPaintEvent *event)
@@ -191,6 +212,9 @@ void BoardWidget::paintEvent(QPaintEvent *event)
                              tileRect.bottomRight() + QPoint(-UiScale::scaled(10), -UiScale::scaled(8)));
 
             if (const UnitPtr unit = m_board->unitAt(row, col)) {
+                if (unit->owner() == ControllerSide::EnemyCtrl && !m_enemyUnitsVisible) {
+                    continue;
+                }
                 drawUnit(painter, tileRect, unit);
             }
         }
@@ -265,7 +289,10 @@ void BoardWidget::mousePressEvent(QMouseEvent *event)
         m_dragStartPos = event->pos();
         m_pressedPosition = pos;
     }
-    if (event->button() == Qt::LeftButton && pos.isValid() && m_board->unitAt(pos.row, pos.col) && !m_pendingPlacementUnit) {
+    const UnitPtr pressedUnit = pos.isValid() ? m_board->unitAt(pos.row, pos.col) : nullptr;
+    const bool canSelectPressedUnit = pressedUnit
+        && (pressedUnit->owner() != ControllerSide::EnemyCtrl || m_enemyUnitsVisible);
+    if (event->button() == Qt::LeftButton && canSelectPressedUnit && !m_pendingPlacementUnit) {
         m_selectedPosition = pos;
     } else if (event->button() == Qt::LeftButton && !m_pendingPlacementUnit) {
         m_selectedPosition = BoardPosition{};

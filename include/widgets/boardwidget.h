@@ -18,6 +18,7 @@ public:
     explicit BoardWidget(QWidget *parent = nullptr);
 
     void setBoard(Board *board);
+    void setEnemyUnitsVisible(bool visible);
     void setPendingPlacementUnit(const UnitPtr &unit);
     void setPendingMoveUnit(const UnitPtr &unit, const BoardPosition &origin);
     void clearPendingAction();
@@ -48,6 +49,7 @@ private:
     void syncDragPreviewFromMime(const QMimeData *mimeData);
 
     Board *m_board;
+    bool m_enemyUnitsVisible;
     UnitPtr m_pendingPlacementUnit;
     BoardPosition m_pendingMoveOrigin;
     BoardPosition m_hoveredPosition;
