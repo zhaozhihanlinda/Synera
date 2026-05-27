@@ -1,5 +1,6 @@
 #include "pages/maingamepage.h"
 
+#include "core/uiscale.h"
 #include "widgets/benchwidget.h"
 #include "widgets/boardwidget.h"
 
@@ -22,8 +23,8 @@ QFrame *createInfoTile(const QString &labelText, QLabel *valueLabel, QWidget *pa
     tile->setObjectName("infoTile");
 
     auto *layout = new QVBoxLayout(tile);
-    layout->setContentsMargins(16, 14, 16, 14);
-    layout->setSpacing(4);
+    layout->setContentsMargins(UiScale::margins(16, 14, 16, 14));
+    layout->setSpacing(UiScale::scaled(4));
 
     auto *label = new QLabel(labelText, tile);
     label->setObjectName("tileLabel");
@@ -59,14 +60,14 @@ MainGamePage::MainGamePage(QWidget *parent)
     , unitInfoPanel(nullptr)
 {
     setAttribute(Qt::WA_StyledBackground, true);
-    setMinimumSize(1280, 820);
+    setMinimumSize(UiScale::size(1280, 820));
 
     auto *rootLayout = new QVBoxLayout(this);
-    rootLayout->setContentsMargins(72, 42, 72, 42);
-    rootLayout->setSpacing(20);
+    rootLayout->setContentsMargins(UiScale::margins(72, 42, 72, 42));
+    rootLayout->setSpacing(UiScale::scaled(20));
 
     auto *headerRow = new QHBoxLayout;
-    headerRow->setSpacing(18);
+    headerRow->setSpacing(UiScale::scaled(18));
 
     auto *playerHudTile = createInfoTile(QStringLiteral("ALLY"), playerHudLabel, this);
     auto *roundHudTile = createInfoTile(QStringLiteral("BATTLEFLOW"), roundHudLabel, this);
@@ -79,8 +80,8 @@ MainGamePage::MainGamePage(QWidget *parent)
     auto *phasePanel = new QFrame(this);
     phasePanel->setObjectName("phasePanel");
     auto *phaseLayout = new QVBoxLayout(phasePanel);
-    phaseLayout->setContentsMargins(36, 36, 36, 36);
-    phaseLayout->setSpacing(14);
+    phaseLayout->setContentsMargins(UiScale::margins(36, 36, 36, 36));
+    phaseLayout->setSpacing(UiScale::scaled(14));
 
     phaseTitleLabel->setObjectName("phaseTitle");
     phaseDescriptionLabel->setObjectName("phaseBody");
@@ -93,13 +94,13 @@ MainGamePage::MainGamePage(QWidget *parent)
     actionButton = new QPushButton(phasePanel);
     actionButton->setObjectName("primaryButton");
     actionButton->setCursor(Qt::PointingHandCursor);
-    actionButton->setMinimumHeight(56);
+    actionButton->setMinimumHeight(UiScale::height(56));
 
     phaseLayout->addWidget(phaseTitleLabel);
     phaseLayout->addWidget(phaseDescriptionLabel);
     phaseLayout->addWidget(battleMetaLabel);
     phaseLayout->addWidget(resourceInfoLabel);
-    phaseLayout->addSpacing(8);
+    phaseLayout->addSpacing(UiScale::scaled(8));
     phaseLayout->addWidget(actionButton, 0, Qt::AlignLeft);
 
     boardWidget = new BoardWidget(this);
@@ -107,8 +108,8 @@ MainGamePage::MainGamePage(QWidget *parent)
     unitInfoPanel = new QFrame(this);
     unitInfoPanel->setObjectName("unitInfoPanel");
     auto *unitInfoLayout = new QVBoxLayout(unitInfoPanel);
-    unitInfoLayout->setContentsMargins(22, 22, 22, 22);
-    unitInfoLayout->setSpacing(10);
+    unitInfoLayout->setContentsMargins(UiScale::margins(22, 22, 22, 22));
+    unitInfoLayout->setSpacing(UiScale::scaled(10));
 
     auto *unitInfoTitle = new QLabel(QStringLiteral("单位信息"), unitInfoPanel);
     unitInfoTitle->setObjectName("panelTitle");
@@ -125,11 +126,11 @@ MainGamePage::MainGamePage(QWidget *parent)
     unitInfoLayout->addStretch(1);
 
     auto *battlefieldRow = new QHBoxLayout;
-    battlefieldRow->setSpacing(18);
+    battlefieldRow->setSpacing(UiScale::scaled(18));
     battlefieldRow->addWidget(boardWidget, 3);
 
     auto *sidePanel = new QVBoxLayout;
-    sidePanel->setSpacing(18);
+    sidePanel->setSpacing(UiScale::scaled(18));
     sidePanel->addWidget(phasePanel);
     sidePanel->addWidget(unitInfoPanel, 1);
     battlefieldRow->addLayout(sidePanel, 1);
@@ -137,8 +138,8 @@ MainGamePage::MainGamePage(QWidget *parent)
     deployPanel = new QFrame(this);
     deployPanel->setObjectName("deployPanel");
     auto *deployLayout = new QVBoxLayout(deployPanel);
-    deployLayout->setContentsMargins(14, 12, 14, 12);
-    deployLayout->setSpacing(10);
+    deployLayout->setContentsMargins(UiScale::margins(14, 12, 14, 12));
+    deployLayout->setSpacing(UiScale::scaled(10));
 
     benchWidget = new BenchWidget(deployPanel);
     deployLayout->addWidget(benchWidget);
@@ -147,7 +148,7 @@ MainGamePage::MainGamePage(QWidget *parent)
     rootLayout->addLayout(battlefieldRow, 1);
     rootLayout->addWidget(deployPanel);
 
-    setStyleSheet(R"(
+    setStyleSheet(UiScale::scaleStyleSheet(QStringLiteral(R"(
         MainGamePage { background-color: #090d15; }
         #pageTitle {
             color: #e4cd92;
@@ -211,7 +212,7 @@ MainGamePage::MainGamePage(QWidget *parent)
         #primaryButton:hover {
             background-color: #98723f;
         }
-    )");
+    )")));
 
     connect(actionButton, &QPushButton::clicked, this, [this]() {
         if (gameManager && gameManager->phase() == GamePhase::Deploy) {
@@ -283,12 +284,18 @@ void MainGamePage::refreshFromGameState()
 void MainGamePage::refreshPhaseUi()
 {
     const RoundState state = gameManager ? gameManager->roundState() : RoundState{};
+    const EnemyEncounterInfo encounter = gameManager ? gameManager->currentEncounterInfo() : EnemyEncounterInfo{};
 
     if (state.phase == GamePhase::Deploy) {
         phaseTitleLabel->setText(QStringLiteral("当前阶段：部署阶段"));
         phaseDescriptionLabel->setText(QStringLiteral("部署阶段：整理阵型并确认上阵单位。"));
-        battleMetaLabel->setText(QStringLiteral("准备信息：左键可从备战区部署单位，也可在棋盘内调整或交换我方站位；右键棋盘单位可回收到备战区。"));
-        resourceInfoLabel->setText(QStringLiteral("Gold %1 | Population %2 / %3")
+        battleMetaLabel->setText(QStringLiteral("Difficulty %1 | Style %2\n%3")
+                                     .arg(encounter.difficultyLabel.isEmpty() ? QStringLiteral("-") : encounter.difficultyLabel)
+                                     .arg(encounter.styleLabel.isEmpty() ? QStringLiteral("-") : encounter.styleLabel)
+                                     .arg(encounter.styleDescription.isEmpty()
+                                              ? QStringLiteral("未抽取敌方打法信息。")
+                                              : encounter.styleDescription));
+        resourceInfoLabel->setText(QStringLiteral("Gold %1 | Population %2 / %3\n当前阶段可根据敌方打法提示调整部署。")
                                        .arg(gameManager ? gameManager->playerGold() : 30)
                                        .arg(gameManager ? gameManager->currentPopulation() : 0)
                                        .arg(gameManager ? gameManager->maxPopulation() : 3));
@@ -319,14 +326,10 @@ void MainGamePage::refreshSelectedUnitPanel()
     const UnitPtr unit = boardWidget->selectedUnit();
     if (!unit) {
         selectedNameLabel->setText(QStringLiteral("未选中单位"));
-        selectedStatsLabel->setText(QStringLiteral("点击棋盘中的单位后，这里会显示基础属性、技能说明和装备预留信息。"));
+        selectedStatsLabel->setText(QStringLiteral("点击棋盘中的单位后，这里会显示基础属性和技能说明。"));
         selectedTraitsLabel->setText(QStringLiteral("Traits: -"));
         return;
     }
-
-    const QString equipmentText = unit->equipmentDescriptions().isEmpty()
-        ? QStringLiteral("Equipment: -")
-        : QStringLiteral("Equipment:\n- %1").arg(unit->equipmentDescriptions().join(QStringLiteral("\n- ")));
 
     selectedNameLabel->setText(unit->name());
     selectedStatsLabel->setText(
@@ -344,13 +347,12 @@ void MainGamePage::refreshSelectedUnitPanel()
             .arg(unit->skillName().isEmpty() ? QStringLiteral("-") : unit->skillName())
             .arg(unit->skillDescription().isEmpty() ? QStringLiteral("-") : unit->skillDescription())
             .arg(unit->owner() == ControllerSide::PlayerCtrl ? QStringLiteral("Player") : QStringLiteral("Enemy")));
-    selectedTraitsLabel->setText(QStringLiteral("%1\nTraits: %2\n%3")
+    selectedTraitsLabel->setText(QStringLiteral("%1\nTraits: %2")
                                      .arg(unit->roleDescription().isEmpty() ? QStringLiteral("Role: -")
                                                                             : QStringLiteral("Role: %1").arg(unit->roleDescription()))
                                      .arg(unit->traits().isEmpty()
                                               ? QStringLiteral("-")
-                                              : unit->traits().join(QStringLiteral(", ")))
-                                     .arg(equipmentText));
+                                              : unit->traits().join(QStringLiteral(", "))));
 }
 
 void MainGamePage::refreshBoardWidgets()

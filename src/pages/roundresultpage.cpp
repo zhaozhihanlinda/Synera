@@ -1,5 +1,7 @@
 #include "pages/roundresultpage.h"
 
+#include "core/uiscale.h"
+
 #include <QDebug>
 #include <QFrame>
 #include <QGridLayout>
@@ -17,8 +19,8 @@ QFrame *createInfoTile(const QString &labelText, QLabel *valueLabel, QWidget *pa
     tile->setObjectName("infoTile");
 
     auto *layout = new QVBoxLayout(tile);
-    layout->setContentsMargins(18, 16, 18, 16);
-    layout->setSpacing(6);
+    layout->setContentsMargins(UiScale::margins(18, 16, 18, 16));
+    layout->setSpacing(UiScale::scaled(6));
 
     auto *label = new QLabel(labelText, tile);
     label->setObjectName("tileLabel");
@@ -42,20 +44,20 @@ RoundResultPage::RoundResultPage(QWidget *parent)
     , continueButton(nullptr)
 {
     setAttribute(Qt::WA_StyledBackground, true);
-    setMinimumSize(1280, 820);
+    setMinimumSize(UiScale::size(1280, 820));
 
     auto *rootLayout = new QVBoxLayout(this);
-    rootLayout->setContentsMargins(90, 54, 90, 54);
+    rootLayout->setContentsMargins(UiScale::margins(90, 54, 90, 54));
     rootLayout->setSpacing(0);
     rootLayout->addStretch(1);
 
     auto *card = new QFrame(this);
     card->setObjectName("resultCard");
-    card->setMaximumWidth(860);
+    card->setMaximumWidth(UiScale::width(860));
 
     auto *cardLayout = new QVBoxLayout(card);
-    cardLayout->setContentsMargins(42, 38, 42, 34);
-    cardLayout->setSpacing(16);
+    cardLayout->setContentsMargins(UiScale::margins(42, 38, 42, 34));
+    cardLayout->setSpacing(UiScale::scaled(16));
 
     resultTitleLabel->setObjectName("resultTitle");
     resultTitleLabel->setAlignment(Qt::AlignCenter);
@@ -65,8 +67,8 @@ RoundResultPage::RoundResultPage(QWidget *parent)
     subtitleLabel->setAlignment(Qt::AlignCenter);
 
     auto *statsGrid = new QGridLayout;
-    statsGrid->setHorizontalSpacing(16);
-    statsGrid->setVerticalSpacing(16);
+    statsGrid->setHorizontalSpacing(UiScale::scaled(16));
+    statsGrid->setVerticalSpacing(UiScale::scaled(16));
     statsGrid->addWidget(createInfoTile(QStringLiteral("当前回合"), roundValueLabel, card), 0, 0);
     statsGrid->addWidget(createInfoTile(QStringLiteral("剩余血量"), hpValueLabel, card), 0, 1);
     statsGrid->addWidget(createInfoTile(QStringLiteral("奖励金币"), rewardValueLabel, card), 1, 0);
@@ -75,7 +77,7 @@ RoundResultPage::RoundResultPage(QWidget *parent)
     continueButton = new QPushButton(QStringLiteral("继续"), card);
     continueButton->setObjectName("primaryButton");
     continueButton->setCursor(Qt::PointingHandCursor);
-    continueButton->setMinimumHeight(56);
+    continueButton->setMinimumHeight(UiScale::height(56));
 
     cardLayout->addWidget(resultTitleLabel);
     cardLayout->addWidget(subtitleLabel);
@@ -89,7 +91,7 @@ RoundResultPage::RoundResultPage(QWidget *parent)
     rootLayout->addLayout(cardRow);
     rootLayout->addStretch(1);
 
-    setStyleSheet(R"(
+    setStyleSheet(UiScale::scaleStyleSheet(QStringLiteral(R"(
         RoundResultPage { background-color: #090d15; }
         #resultCard {
             background-color: rgba(10, 16, 28, 218);
@@ -133,7 +135,7 @@ RoundResultPage::RoundResultPage(QWidget *parent)
         #primaryButton:hover {
             background-color: #98723f;
         }
-    )");
+    )")));
 
     connect(continueButton, &QPushButton::clicked, this, [this]() {
         qDebug() << "Round result continue clicked";
@@ -165,7 +167,7 @@ void RoundResultPage::paintEvent(QPaintEvent *event)
     painter.fillRect(rect(), glow);
 
     painter.setPen(QPen(QColor(124, 139, 177, 22), 1));
-    const int gridSize = 48;
+    const int gridSize = UiScale::scaled(48);
     for (int x = 0; x < width(); x += gridSize) {
         painter.drawLine(x, 0, x, height());
     }

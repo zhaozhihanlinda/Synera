@@ -1,5 +1,7 @@
 #include "pages/initinfopage.h"
 
+#include "core/uiscale.h"
+
 #include <QDebug>
 #include <QFrame>
 #include <QGraphicsDropShadowEffect>
@@ -19,8 +21,8 @@ QFrame *createInfoTile(const QString &labelText, QLabel *valueLabel, QWidget *pa
     tile->setObjectName("infoTile");
 
     auto *layout = new QVBoxLayout(tile);
-    layout->setContentsMargins(18, 16, 18, 16);
-    layout->setSpacing(6);
+    layout->setContentsMargins(UiScale::margins(18, 16, 18, 16));
+    layout->setSpacing(UiScale::scaled(6));
 
     auto *label = new QLabel(labelText, tile);
     label->setObjectName("tileLabel");
@@ -48,25 +50,25 @@ InitInfoPage::InitInfoPage(QWidget *parent)
     , closeRulesButton(nullptr)
 {
     setAttribute(Qt::WA_StyledBackground, true);
-    setMinimumSize(1280, 820);
+    setMinimumSize(UiScale::size(1280, 820));
 
     auto *rootLayout = new QVBoxLayout(this);
-    rootLayout->setContentsMargins(80, 48, 80, 48);
-    rootLayout->setSpacing(24);
+    rootLayout->setContentsMargins(UiScale::margins(80, 48, 80, 48));
+    rootLayout->setSpacing(UiScale::scaled(24));
     rootLayout->addStretch(1);
 
     auto *card = new QFrame(this);
     card->setObjectName("initCard");
-    card->setMaximumWidth(860);
+    card->setMaximumWidth(UiScale::width(860));
     auto *shadow = new QGraphicsDropShadowEffect(card);
-    shadow->setBlurRadius(36);
-    shadow->setOffset(0, 14);
+    shadow->setBlurRadius(UiScale::scaled(36));
+    shadow->setOffset(0, UiScale::scaled(14));
     shadow->setColor(QColor(0, 0, 0, 100));
     card->setGraphicsEffect(shadow);
 
     auto *cardLayout = new QVBoxLayout(card);
-    cardLayout->setContentsMargins(44, 42, 44, 36);
-    cardLayout->setSpacing(18);
+    cardLayout->setContentsMargins(UiScale::margins(44, 42, 44, 36));
+    cardLayout->setSpacing(UiScale::scaled(18));
 
     auto *titleLabel = new QLabel(QStringLiteral("Prepare for Battle"), card);
     titleLabel->setObjectName("pageTitle");
@@ -75,15 +77,15 @@ InitInfoPage::InitInfoPage(QWidget *parent)
     auto *profilePanel = new QFrame(card);
     profilePanel->setObjectName("profilePanel");
     auto *profileLayout = new QHBoxLayout(profilePanel);
-    profileLayout->setContentsMargins(24, 24, 24, 24);
-    profileLayout->setSpacing(24);
+    profileLayout->setContentsMargins(UiScale::margins(24, 24, 24, 24));
+    profileLayout->setSpacing(UiScale::scaled(24));
 
     avatarValueLabel->setObjectName("avatarBadge");
     avatarValueLabel->setAlignment(Qt::AlignCenter);
-    avatarValueLabel->setFixedSize(180, 180);
+    avatarValueLabel->setFixedSize(UiScale::size(180, 180));
 
     auto *identityLayout = new QVBoxLayout;
-    identityLayout->setSpacing(10);
+    identityLayout->setSpacing(UiScale::scaled(10));
 
     auto *nicknameTitle = new QLabel(QStringLiteral("玩家昵称"), profilePanel);
     nicknameTitle->setObjectName("sectionLabel");
@@ -97,7 +99,7 @@ InitInfoPage::InitInfoPage(QWidget *parent)
 
     identityLayout->addWidget(nicknameTitle);
     identityLayout->addWidget(nicknameValueLabel);
-    identityLayout->addSpacing(12);
+    identityLayout->addSpacing(UiScale::scaled(12));
     identityLayout->addWidget(avatarTitle);
     identityLayout->addWidget(avatarIdValueLabel);
     identityLayout->addStretch(1);
@@ -106,8 +108,8 @@ InitInfoPage::InitInfoPage(QWidget *parent)
     profileLayout->addLayout(identityLayout, 1);
 
     auto *statsGrid = new QGridLayout;
-    statsGrid->setHorizontalSpacing(16);
-    statsGrid->setVerticalSpacing(16);
+    statsGrid->setHorizontalSpacing(UiScale::scaled(16));
+    statsGrid->setVerticalSpacing(UiScale::scaled(16));
     statsGrid->addWidget(createInfoTile(QStringLiteral("初始血量"), hpValueLabel, card), 0, 0);
     statsGrid->addWidget(createInfoTile(QStringLiteral("初始金币数"), goldValueLabel, card), 0, 1);
     statsGrid->addWidget(createInfoTile(QStringLiteral("初始人口上限"), populationValueLabel, card), 1, 0, 1, 2);
@@ -115,13 +117,13 @@ InitInfoPage::InitInfoPage(QWidget *parent)
     enterGameButton = new QPushButton(QStringLiteral("进入游戏"), card);
     enterGameButton->setObjectName("primaryButton");
     enterGameButton->setCursor(Qt::PointingHandCursor);
-    enterGameButton->setMinimumHeight(58);
+    enterGameButton->setMinimumHeight(UiScale::height(58));
 
     cardLayout->addWidget(titleLabel);
-    cardLayout->addSpacing(12);
+    cardLayout->addSpacing(UiScale::scaled(12));
     cardLayout->addWidget(profilePanel);
     cardLayout->addLayout(statsGrid);
-    cardLayout->addSpacing(6);
+    cardLayout->addSpacing(UiScale::scaled(6));
     cardLayout->addWidget(enterGameButton);
 
     auto *cardRow = new QHBoxLayout;
@@ -136,18 +138,18 @@ InitInfoPage::InitInfoPage(QWidget *parent)
     rulesOverlay->hide();
 
     auto *overlayLayout = new QVBoxLayout(rulesOverlay);
-    overlayLayout->setContentsMargins(0, 0, 0, 0);
+    overlayLayout->setContentsMargins(UiScale::margins(0, 0, 0, 0));
 
     auto *overlayCenter = new QHBoxLayout;
     overlayCenter->addStretch(1);
 
     auto *rulesCard = new QFrame(rulesOverlay);
     rulesCard->setObjectName("rulesCard");
-    rulesCard->setMaximumWidth(720);
+    rulesCard->setMaximumWidth(UiScale::width(720));
 
     auto *rulesLayout = new QVBoxLayout(rulesCard);
-    rulesLayout->setContentsMargins(30, 28, 30, 24);
-    rulesLayout->setSpacing(14);
+    rulesLayout->setContentsMargins(UiScale::margins(30, 28, 30, 24));
+    rulesLayout->setSpacing(UiScale::scaled(14));
 
     auto *rulesTitle = new QLabel(QStringLiteral("规则说明"), rulesCard);
     rulesTitle->setObjectName("rulesTitle");
@@ -157,7 +159,6 @@ InitInfoPage::InitInfoPage(QWidget *parent)
                        "当上场单位数量达到人口上限后，将无法继续部署新的单位。\n\n"
                        "2. 金币可用于：\n"
                        "- 购买单位\n"
-                       "- 购买装备\n"
                        "- 升级人口\n\n"
                        "每轮结束后，玩家会获得一定金币奖励。"),
         rulesCard);
@@ -167,7 +168,7 @@ InitInfoPage::InitInfoPage(QWidget *parent)
     closeRulesButton = new QPushButton(QStringLiteral("关闭说明"), rulesCard);
     closeRulesButton->setObjectName("secondaryButton");
     closeRulesButton->setCursor(Qt::PointingHandCursor);
-    closeRulesButton->setMinimumHeight(52);
+    closeRulesButton->setMinimumHeight(UiScale::height(52));
 
     rulesLayout->addWidget(rulesTitle);
     rulesLayout->addWidget(rulesBody);
@@ -179,7 +180,7 @@ InitInfoPage::InitInfoPage(QWidget *parent)
     overlayLayout->addLayout(overlayCenter);
     overlayLayout->addStretch(1);
 
-    setStyleSheet(R"(
+    setStyleSheet(UiScale::scaleStyleSheet(QStringLiteral(R"(
         InitInfoPage { background-color: #090d15; }
         #initCard {
             background-color: rgba(10, 16, 28, 218);
@@ -277,7 +278,7 @@ InitInfoPage::InitInfoPage(QWidget *parent)
         #secondaryButton:hover {
             background-color: #364566;
         }
-    )");
+    )")));
 
     connect(enterGameButton, &QPushButton::clicked, this, [this]() {
         qDebug() << "Enter game clicked";
@@ -314,7 +315,7 @@ void InitInfoPage::paintEvent(QPaintEvent *event)
     painter.fillRect(rect(), glow);
 
     painter.setPen(QPen(QColor(124, 139, 177, 22), 1));
-    const int gridSize = 48;
+    const int gridSize = UiScale::scaled(48);
     for (int x = 0; x < width(); x += gridSize) {
         painter.drawLine(x, 0, x, height());
     }

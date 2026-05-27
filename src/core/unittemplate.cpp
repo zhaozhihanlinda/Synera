@@ -8,7 +8,6 @@ UnitPtr UnitTemplate::createUnit(const QString &instanceId, ControllerSide owner
     unit->setRoleDescription(roleDescription);
     unit->setSkillName(skillName);
     unit->setSkillDescription(skillDescription);
-    unit->setEquipmentDescriptions(equipmentDescriptions);
     unit->setMaxHp(maxHp);
     unit->setHp(maxHp);
     unit->setAtk(atk);

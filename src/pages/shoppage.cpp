@@ -1,5 +1,6 @@
 #include "pages/shoppage.h"
 
+#include "core/uiscale.h"
 #include "core/playertemplatelibrary.h"
 
 #include <QDebug>
@@ -19,8 +20,8 @@ QFrame *createInfoTile(const QString &labelText, QLabel *valueLabel, QWidget *pa
     tile->setObjectName("infoTile");
 
     auto *layout = new QVBoxLayout(tile);
-    layout->setContentsMargins(18, 16, 18, 16);
-    layout->setSpacing(6);
+    layout->setContentsMargins(UiScale::margins(18, 16, 18, 16));
+    layout->setSpacing(UiScale::scaled(6));
 
     auto *label = new QLabel(labelText, tile);
     label->setObjectName("tileLabel");
@@ -38,8 +39,8 @@ QFrame *createShopCard(const UnitTemplate &unitTemplate, QWidget *parent)
     card->setObjectName("shopCard");
 
     auto *layout = new QVBoxLayout(card);
-    layout->setContentsMargins(18, 18, 18, 18);
-    layout->setSpacing(8);
+    layout->setContentsMargins(UiScale::margins(18, 18, 18, 18));
+    layout->setSpacing(UiScale::scaled(8));
 
     auto *nameLabel = new QLabel(unitTemplate.displayName, card);
     nameLabel->setObjectName("cardTitle");
@@ -75,11 +76,11 @@ ShopPage::ShopPage(QWidget *parent)
     , shopCardsLayout(nullptr)
 {
     setAttribute(Qt::WA_StyledBackground, true);
-    setMinimumSize(1280, 820);
+    setMinimumSize(UiScale::size(1280, 820));
 
     auto *rootLayout = new QVBoxLayout(this);
-    rootLayout->setContentsMargins(72, 42, 72, 42);
-    rootLayout->setSpacing(20);
+    rootLayout->setContentsMargins(UiScale::margins(72, 42, 72, 42));
+    rootLayout->setSpacing(UiScale::scaled(20));
 
     auto *titleLabel = new QLabel(QStringLiteral("商店"), this);
     titleLabel->setObjectName("pageTitle");
@@ -87,8 +88,8 @@ ShopPage::ShopPage(QWidget *parent)
     subtitleLabel->setObjectName("pageSubtitle");
 
     auto *statsGrid = new QGridLayout;
-    statsGrid->setHorizontalSpacing(16);
-    statsGrid->setVerticalSpacing(16);
+    statsGrid->setHorizontalSpacing(UiScale::scaled(16));
+    statsGrid->setVerticalSpacing(UiScale::scaled(16));
     statsGrid->addWidget(createInfoTile(QStringLiteral("当前回合"), roundValueLabel, this), 0, 0);
     statsGrid->addWidget(createInfoTile(QStringLiteral("玩家金币"), goldValueLabel, this), 0, 1);
     statsGrid->addWidget(createInfoTile(QStringLiteral("玩家血量"), hpValueLabel, this), 1, 0);
@@ -97,29 +98,35 @@ ShopPage::ShopPage(QWidget *parent)
     auto *shopPanel = new QFrame(this);
     shopPanel->setObjectName("shopPanel");
     auto *shopPanelLayout = new QVBoxLayout(shopPanel);
-    shopPanelLayout->setContentsMargins(36, 32, 36, 32);
-    shopPanelLayout->setSpacing(18);
+    shopPanelLayout->setContentsMargins(UiScale::margins(36, 32, 36, 32));
+    shopPanelLayout->setSpacing(UiScale::scaled(18));
 
     auto *shopTitle = new QLabel(QStringLiteral("初始角色池"), shopPanel);
     shopTitle->setObjectName("panelTitle");
     auto *shopBody = new QLabel(QStringLiteral("当前阶段只展示我方角色模板，不实现购买与刷新。"), shopPanel);
     shopBody->setObjectName("panelBody");
     shopBody->setWordWrap(true);
+    auto *reservedHint = new QLabel(
+        QStringLiteral("提示：技能和金币字段已作为静态设计数据保留，当前仅展示，不实现购买或施法逻辑。"),
+        shopPanel);
+    reservedHint->setObjectName("hintText");
+    reservedHint->setWordWrap(true);
 
     shopCardsLayout = new QGridLayout;
-    shopCardsLayout->setHorizontalSpacing(14);
-    shopCardsLayout->setVerticalSpacing(14);
+    shopCardsLayout->setHorizontalSpacing(UiScale::scaled(14));
+    shopCardsLayout->setVerticalSpacing(UiScale::scaled(14));
     populateShopCards();
 
     enterDeployButton = new QPushButton(QStringLiteral("进入部署"), shopPanel);
     enterDeployButton->setObjectName("primaryButton");
     enterDeployButton->setCursor(Qt::PointingHandCursor);
-    enterDeployButton->setMinimumHeight(56);
+    enterDeployButton->setMinimumHeight(UiScale::height(56));
 
     shopPanelLayout->addWidget(shopTitle);
     shopPanelLayout->addWidget(shopBody);
+    shopPanelLayout->addWidget(reservedHint);
     shopPanelLayout->addLayout(shopCardsLayout);
-    shopPanelLayout->addSpacing(8);
+    shopPanelLayout->addSpacing(UiScale::scaled(8));
     shopPanelLayout->addWidget(enterDeployButton, 0, Qt::AlignLeft);
 
     rootLayout->addWidget(titleLabel);
@@ -127,7 +134,7 @@ ShopPage::ShopPage(QWidget *parent)
     rootLayout->addLayout(statsGrid);
     rootLayout->addWidget(shopPanel, 1);
 
-    setStyleSheet(R"(
+    setStyleSheet(UiScale::scaleStyleSheet(QStringLiteral(R"(
         ShopPage { background-color: #090d15; }
         #pageTitle {
             color: #e3cd92;
@@ -169,6 +176,11 @@ ShopPage::ShopPage(QWidget *parent)
             font-size: 18px;
             font-weight: 500;
         }
+        #hintText {
+            color: #9cb3cf;
+            font-size: 14px;
+            font-weight: 600;
+        }
         #cardTitle {
             color: #f5e4bd;
             font-size: 20px;
@@ -201,7 +213,7 @@ ShopPage::ShopPage(QWidget *parent)
         #primaryButton:hover {
             background-color: #98723f;
         }
-    )");
+    )")));
 
     connect(enterDeployButton, &QPushButton::clicked, this, [this]() {
         qDebug() << "Enter deploy clicked";
@@ -244,7 +256,7 @@ void ShopPage::paintEvent(QPaintEvent *event)
     painter.fillRect(rect(), glow);
 
     painter.setPen(QPen(QColor(123, 141, 181, 22), 1));
-    const int gridSize = 48;
+    const int gridSize = UiScale::scaled(48);
     for (int x = 0; x < width(); x += gridSize) {
         painter.drawLine(x, 0, x, height());
     }

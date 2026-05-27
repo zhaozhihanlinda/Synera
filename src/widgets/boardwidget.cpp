@@ -1,5 +1,7 @@
 #include "widgets/boardwidget.h"
 
+#include "core/uiscale.h"
+
 #include <QDrag>
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
@@ -12,9 +14,9 @@
 
 namespace {
 
-constexpr int kBoardPadding = 24;
-constexpr int kMidGap = 16;
-constexpr int kCellGap = 6;
+const int kBoardPadding = UiScale::scaled(24);
+const int kMidGap = UiScale::scaled(16);
+const int kCellGap = UiScale::scaled(6);
 const char kBenchDragMime[] = "application/x-synera-bench-slot";
 const char kBoardDragMime[] = "application/x-synera-board-pos";
 
@@ -40,7 +42,7 @@ BoardWidget::BoardWidget(QWidget *parent)
     , m_board(nullptr)
     , m_pendingPlacementUnit(nullptr)
 {
-    setMinimumSize(640, 640);
+    setMinimumSize(UiScale::size(640, 640));
     setMouseTracking(true);
     setAcceptDrops(true);
 }
@@ -108,16 +110,21 @@ void BoardWidget::paintEvent(QPaintEvent *event)
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing, true);
 
-    const QRect panelRect = rect().adjusted(8, 8, -8, -8);
-    painter.setPen(QPen(QColor(208, 183, 126, 180), 2));
+    const int outerInset = UiScale::scaled(8);
+    const int panelRadius = UiScale::scaled(28);
+    const int innerInset = UiScale::scaled(8);
+    const int selectedPenWidth = UiScale::scaled(3);
+    const int tileRadius = UiScale::scaled(12);
+    painter.setPen(QPen(QColor(208, 183, 126, 180), UiScale::scaled(2)));
+    const QRect panelRect = rect().adjusted(outerInset, outerInset, -outerInset, -outerInset);
     painter.setBrush(QColor(9, 15, 25, 208));
-    painter.drawRoundedRect(panelRect, 28, 28);
+    painter.drawRoundedRect(panelRect, panelRadius, panelRadius);
 
     QLinearGradient glow(panelRect.topLeft(), panelRect.bottomRight());
     glow.setColorAt(0.0, QColor(34, 74, 111, 70));
     glow.setColorAt(0.5, QColor(8, 13, 21, 0));
     glow.setColorAt(1.0, QColor(70, 36, 56, 80));
-    painter.fillRect(panelRect.adjusted(8, 8, -8, -8), glow);
+    painter.fillRect(panelRect.adjusted(innerInset, innerInset, -innerInset, -innerInset), glow);
 
     if (!m_board) {
         painter.setPen(QColor("#d8deed"));
@@ -160,21 +167,28 @@ void BoardWidget::paintEvent(QPaintEvent *event)
                 strokeColor = QColor("#f4d796");
             }
 
-            painter.setPen(QPen(strokeColor, m_selectedPosition == tilePosition ? 3.0 : 1.6));
+            painter.setPen(QPen(strokeColor, m_selectedPosition == tilePosition ? selectedPenWidth : UiScale::scaled(2)));
             painter.setBrush(fillColor);
-            painter.drawRoundedRect(tileRect, 12, 12);
+            painter.drawRoundedRect(tileRect, tileRadius, tileRadius);
 
             if (illegalDropTarget) {
-                painter.setPen(QPen(QColor(255, 164, 176, 230), 3.2));
-                painter.drawRoundedRect(tileRect.adjusted(3, 3, -3, -3), 10, 10);
-                painter.setPen(QPen(QColor(255, 196, 205, 210), 2.4));
-                painter.drawLine(tileRect.topLeft() + QPoint(16, 16), tileRect.bottomRight() + QPoint(-16, -16));
-                painter.drawLine(tileRect.topRight() + QPoint(-16, 16), tileRect.bottomLeft() + QPoint(16, -16));
+                const int illegalInset = UiScale::scaled(3);
+                const int illegalCrossOffset = UiScale::scaled(16);
+                painter.setPen(QPen(QColor(255, 164, 176, 230), UiScale::scaled(3)));
+                painter.drawRoundedRect(tileRect.adjusted(illegalInset, illegalInset, -illegalInset, -illegalInset),
+                                        UiScale::scaled(10), UiScale::scaled(10));
+                painter.setPen(QPen(QColor(255, 196, 205, 210), UiScale::scaled(2)));
+                painter.drawLine(tileRect.topLeft() + QPoint(illegalCrossOffset, illegalCrossOffset),
+                                 tileRect.bottomRight() + QPoint(-illegalCrossOffset, -illegalCrossOffset));
+                painter.drawLine(tileRect.topRight() + QPoint(-illegalCrossOffset, illegalCrossOffset),
+                                 tileRect.bottomLeft() + QPoint(illegalCrossOffset, -illegalCrossOffset));
             }
 
             painter.setPen(QPen(QColor(255, 255, 255, 16), 1));
-            painter.drawLine(tileRect.topLeft() + QPoint(10, 8), tileRect.topRight() + QPoint(-10, 8));
-            painter.drawLine(tileRect.bottomLeft() + QPoint(10, -8), tileRect.bottomRight() + QPoint(-10, -8));
+            painter.drawLine(tileRect.topLeft() + QPoint(UiScale::scaled(10), UiScale::scaled(8)),
+                             tileRect.topRight() + QPoint(-UiScale::scaled(10), UiScale::scaled(8)));
+            painter.drawLine(tileRect.bottomLeft() + QPoint(UiScale::scaled(10), -UiScale::scaled(8)),
+                             tileRect.bottomRight() + QPoint(-UiScale::scaled(10), -UiScale::scaled(8)));
 
             if (const UnitPtr unit = m_board->unitAt(row, col)) {
                 drawUnit(painter, tileRect, unit);
@@ -185,8 +199,8 @@ void BoardWidget::paintEvent(QPaintEvent *event)
     const QRect upper = cellRect(3, 0);
     const QRect lower = cellRect(4, 0);
     const int y = (upper.bottom() + lower.top()) / 2;
-    painter.setPen(QPen(QColor("#7b7aff"), 2));
-    painter.drawLine(panelRect.left() + 34, y, panelRect.right() - 34, y);
+    painter.setPen(QPen(QColor("#7b7aff"), UiScale::scaled(2)));
+    painter.drawLine(panelRect.left() + UiScale::scaled(34), y, panelRect.right() - UiScale::scaled(34), y);
 }
 
 void BoardWidget::mouseMoveEvent(QMouseEvent *event)
@@ -205,16 +219,18 @@ void BoardWidget::mouseMoveEvent(QMouseEvent *event)
             mimeData->setData(kBoardDragMime,
                               QByteArray::number(m_pressedPosition.row) + "," + QByteArray::number(m_pressedPosition.col));
 
-            QPixmap pixmap(88, 88);
+            QPixmap pixmap(UiScale::size(88, 88));
             pixmap.fill(Qt::transparent);
             {
                 QPainter painter(&pixmap);
                 painter.setRenderHint(QPainter::Antialiasing, true);
-                painter.setPen(QPen(borderColorForSide(unit->owner()), 3));
+                painter.setPen(QPen(borderColorForSide(unit->owner()), UiScale::scaled(3)));
                 painter.setBrush(fillColorForSide(unit->owner()));
-                painter.drawRoundedRect(pixmap.rect().adjusted(4, 4, -4, -4), 18, 18);
+                painter.drawRoundedRect(pixmap.rect().adjusted(UiScale::scaled(4), UiScale::scaled(4),
+                                                               -UiScale::scaled(4), -UiScale::scaled(4)),
+                                        UiScale::scaled(18), UiScale::scaled(18));
                 painter.setPen(QColor("#f8f4eb"));
-                painter.setFont(QFont(QStringLiteral("Helvetica"), 28, QFont::Bold));
+                painter.setFont(QFont(QStringLiteral("Helvetica"), UiScale::scaled(28), QFont::Bold));
                 painter.drawText(pixmap.rect(), Qt::AlignCenter, avatarText(unit));
             }
 
@@ -366,32 +382,36 @@ BoardPosition BoardWidget::boardPositionAt(const QPoint &point) const
 
 void BoardWidget::drawUnit(QPainter &painter, const QRect &rect, const UnitPtr &unit) const
 {
-    const QRect avatarRect = rect.adjusted(10, 8, -10, -18);
-    const QRect hpBarRect(rect.left() + 10, rect.bottom() - 18, rect.width() - 20, 5);
-    const QRect manaBarRect(rect.left() + 10, rect.bottom() - 10, rect.width() - 20, 4);
+    const QRect avatarRect = rect.adjusted(UiScale::scaled(10), UiScale::scaled(8), -UiScale::scaled(10), -UiScale::scaled(18));
+    const QRect hpBarRect(rect.left() + UiScale::scaled(10), rect.bottom() - UiScale::scaled(18),
+                          rect.width() - UiScale::scaled(20), UiScale::scaled(5));
+    const QRect manaBarRect(rect.left() + UiScale::scaled(10), rect.bottom() - UiScale::scaled(10),
+                            rect.width() - UiScale::scaled(20), UiScale::scaled(4));
 
-    painter.setPen(QPen(borderColorForSide(unit->owner()), 2));
+    painter.setPen(QPen(borderColorForSide(unit->owner()), UiScale::scaled(2)));
     painter.setBrush(fillColorForSide(unit->owner()));
-    painter.drawRoundedRect(avatarRect, 14, 14);
+    painter.drawRoundedRect(avatarRect, UiScale::scaled(14), UiScale::scaled(14));
 
     painter.setPen(QColor("#f8f4eb"));
-    painter.setFont(QFont(QStringLiteral("Helvetica"), std::max(12, avatarRect.width() / 4), QFont::Bold));
+    painter.setFont(QFont(QStringLiteral("Helvetica"), std::max(UiScale::scaled(12), avatarRect.width() / 4), QFont::Bold));
     painter.drawText(avatarRect, Qt::AlignCenter, avatarText(unit));
 
     painter.setPen(Qt::NoPen);
     painter.setBrush(QColor(18, 22, 30, 220));
-    painter.drawRoundedRect(hpBarRect, 3, 3);
-    painter.drawRoundedRect(manaBarRect, 3, 3);
+    painter.drawRoundedRect(hpBarRect, UiScale::scaled(3), UiScale::scaled(3));
+    painter.drawRoundedRect(manaBarRect, UiScale::scaled(3), UiScale::scaled(3));
 
     const qreal hpRatio = unit->maxHp() > 0 ? static_cast<qreal>(unit->hp()) / unit->maxHp() : 0.0;
     const qreal manaRatio = unit->maxMana() > 0 ? static_cast<qreal>(unit->mana()) / unit->maxMana() : 0.0;
 
     painter.setBrush(QColor("#65d48f"));
     painter.drawRoundedRect(QRect(hpBarRect.left(), hpBarRect.top(),
-                                  static_cast<int>(hpBarRect.width() * hpRatio), hpBarRect.height()), 3, 3);
+                                  static_cast<int>(hpBarRect.width() * hpRatio), hpBarRect.height()),
+                            UiScale::scaled(3), UiScale::scaled(3));
     painter.setBrush(QColor("#63b1ff"));
     painter.drawRoundedRect(QRect(manaBarRect.left(), manaBarRect.top(),
-                                  static_cast<int>(manaBarRect.width() * manaRatio), manaBarRect.height()), 3, 3);
+                                  static_cast<int>(manaBarRect.width() * manaRatio), manaBarRect.height()),
+                            UiScale::scaled(3), UiScale::scaled(3));
 }
 
 void BoardWidget::syncDragPreviewFromMime(const QMimeData *mimeData)

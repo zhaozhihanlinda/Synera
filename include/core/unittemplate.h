@@ -19,7 +19,6 @@ struct UnitTemplate
     int manaGainOnHit = 0;
     QString skillName; // Reserved for future skill logic. Only static data is stored for now.
     QString skillDescription; // Reserved for future skill logic. No casting behavior is implemented.
-    QStringList equipmentDescriptions; // Reserved for future equipment logic. No equipment system is implemented.
 
     UnitPtr createUnit(const QString &instanceId, ControllerSide owner) const;
 };

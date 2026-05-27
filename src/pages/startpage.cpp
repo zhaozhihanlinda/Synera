@@ -1,5 +1,7 @@
 #include "pages/startpage.h"
 
+#include "core/uiscale.h"
+
 #include <QFrame>
 #include <QDebug>
 #include <QGraphicsDropShadowEffect>
@@ -16,26 +18,26 @@ StartPage::StartPage(QWidget *parent)
     , exitButton(nullptr)
 {
     setAttribute(Qt::WA_StyledBackground, true);
-    setMinimumSize(1280, 820);
+    setMinimumSize(UiScale::size(1280, 820));
 
     auto *rootLayout = new QVBoxLayout(this);
-    rootLayout->setContentsMargins(80, 60, 80, 54);
+    rootLayout->setContentsMargins(UiScale::margins(80, 60, 80, 54));
     rootLayout->setSpacing(0);
 
     rootLayout->addStretch(1);
 
     auto *contentCard = new QFrame(this);
     contentCard->setObjectName("startPageCard");
-    contentCard->setMaximumWidth(680);
+    contentCard->setMaximumWidth(UiScale::width(680));
     auto *shadow = new QGraphicsDropShadowEffect(contentCard);
-    shadow->setBlurRadius(36);
-    shadow->setOffset(0, 12);
+    shadow->setBlurRadius(UiScale::scaled(36));
+    shadow->setOffset(0, UiScale::scaled(12));
     shadow->setColor(QColor(0, 0, 0, 100));
     contentCard->setGraphicsEffect(shadow);
 
     auto *cardLayout = new QVBoxLayout(contentCard);
-    cardLayout->setContentsMargins(54, 56, 54, 42);
-    cardLayout->setSpacing(18);
+    cardLayout->setContentsMargins(UiScale::margins(54, 56, 54, 42));
+    cardLayout->setSpacing(UiScale::scaled(18));
 
     auto *titleLabel = new QLabel(QStringLiteral("Synera"), contentCard);
     titleLabel->setAlignment(Qt::AlignCenter);
@@ -48,21 +50,21 @@ StartPage::StartPage(QWidget *parent)
     startButton = new QPushButton(QStringLiteral("开始游戏"), contentCard);
     startButton->setObjectName("startButton");
     startButton->setCursor(Qt::PointingHandCursor);
-    startButton->setMinimumSize(220, 64);
+    startButton->setMinimumSize(UiScale::size(220, 64));
 
     exitButton = new QPushButton(QStringLiteral("退出游戏"), contentCard);
     exitButton->setObjectName("secondaryButton");
     exitButton->setCursor(Qt::PointingHandCursor);
-    exitButton->setMinimumSize(220, 64);
+    exitButton->setMinimumSize(UiScale::size(220, 64));
 
     auto *buttonColumn = new QVBoxLayout;
-    buttonColumn->setSpacing(14);
+    buttonColumn->setSpacing(UiScale::scaled(14));
     buttonColumn->addWidget(startButton, 0, Qt::AlignCenter);
     buttonColumn->addWidget(exitButton, 0, Qt::AlignCenter);
 
     cardLayout->addWidget(titleLabel);
     cardLayout->addWidget(subtitleLabel);
-    cardLayout->addSpacing(14);
+    cardLayout->addSpacing(UiScale::scaled(14));
     cardLayout->addLayout(buttonColumn);
 
     auto *contentRow = new QHBoxLayout;
@@ -79,7 +81,7 @@ StartPage::StartPage(QWidget *parent)
     sloganLabel->setObjectName("startSlogan");
     rootLayout->addWidget(sloganLabel);
 
-    setStyleSheet(R"(
+    setStyleSheet(UiScale::scaleStyleSheet(QStringLiteral(R"(
         StartPage {
             background-color: #090d15;
         }
@@ -132,7 +134,7 @@ StartPage::StartPage(QWidget *parent)
             font-weight: 600;
             letter-spacing: 2px;
         }
-    )");
+    )")));
 
     connect(startButton, &QPushButton::clicked, this, [this]() {
         qDebug() << "Start game clicked";
@@ -156,7 +158,7 @@ void StartPage::paintEvent(QPaintEvent *event)
     painter.fillRect(rect(), glow);
 
     painter.setPen(QPen(QColor(121, 138, 176, 22), 1));
-    const int gridSize = 48;
+    const int gridSize = UiScale::scaled(48);
     for (int x = 0; x < width(); x += gridSize) {
         painter.drawLine(x, 0, x, height());
     }

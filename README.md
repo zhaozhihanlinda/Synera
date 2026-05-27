@@ -47,12 +47,10 @@ The current player unit templates may already contain static fields for:
 - `cost`
 - `skillName`
 - `skillDescription`
-- `equipmentDescriptions`
 
 These fields are intentionally reserved so the design data is not lost, but they do not enable any gameplay systems yet.
 
 Not implemented yet:
 
 - gold deduction or purchase behavior
-- equipment assignment or stat modification
 - skill casting behavior or skill resolution

@@ -1,5 +1,7 @@
 #include "pages/defeatpage.h"
 
+#include "core/uiscale.h"
+
 #include <QFrame>
 #include <QLabel>
 #include <QPaintEvent>
@@ -14,19 +16,19 @@ DefeatPage::DefeatPage(QWidget *parent)
     , exitButton(nullptr)
 {
     setAttribute(Qt::WA_StyledBackground, true);
-    setMinimumSize(1280, 820);
+    setMinimumSize(UiScale::size(1280, 820));
 
     auto *rootLayout = new QVBoxLayout(this);
-    rootLayout->setContentsMargins(96, 54, 96, 54);
+    rootLayout->setContentsMargins(UiScale::margins(96, 54, 96, 54));
     rootLayout->addStretch(1);
 
     auto *card = new QFrame(this);
     card->setObjectName("endCard");
-    card->setMaximumWidth(760);
+    card->setMaximumWidth(UiScale::width(760));
 
     auto *cardLayout = new QVBoxLayout(card);
-    cardLayout->setContentsMargins(42, 40, 42, 34);
-    cardLayout->setSpacing(16);
+    cardLayout->setContentsMargins(UiScale::margins(42, 40, 42, 34));
+    cardLayout->setSpacing(UiScale::scaled(16));
 
     auto *titleLabel = new QLabel(QStringLiteral("游戏失败"), card);
     titleLabel->setObjectName("pageTitle");
@@ -45,12 +47,12 @@ DefeatPage::DefeatPage(QWidget *parent)
 
     for (QPushButton *button : {restartButton, returnButton, exitButton}) {
         button->setCursor(Qt::PointingHandCursor);
-        button->setMinimumHeight(54);
+        button->setMinimumHeight(UiScale::height(54));
     }
 
     cardLayout->addWidget(titleLabel);
     cardLayout->addWidget(subtitleLabel);
-    cardLayout->addSpacing(8);
+    cardLayout->addSpacing(UiScale::scaled(8));
     cardLayout->addWidget(restartButton);
     cardLayout->addWidget(returnButton);
     cardLayout->addWidget(exitButton);
@@ -62,7 +64,7 @@ DefeatPage::DefeatPage(QWidget *parent)
     rootLayout->addLayout(cardRow);
     rootLayout->addStretch(1);
 
-    setStyleSheet(R"(
+    setStyleSheet(UiScale::scaleStyleSheet(QStringLiteral(R"(
         DefeatPage { background-color: #090d15; }
         #endCard {
             background-color: rgba(10, 16, 28, 218);
@@ -100,7 +102,7 @@ DefeatPage::DefeatPage(QWidget *parent)
         #secondaryButton:hover {
             background-color: #364566;
         }
-    )");
+    )")));
 
     connect(restartButton, &QPushButton::clicked, this, &DefeatPage::restartClicked);
     connect(returnButton, &QPushButton::clicked, this, &DefeatPage::returnToStartClicked);

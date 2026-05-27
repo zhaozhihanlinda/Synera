@@ -134,11 +134,6 @@ QString Unit::skillDescription() const
     return m_skillDescription;
 }
 
-QStringList Unit::equipmentDescriptions() const
-{
-    return m_equipmentDescriptions;
-}
-
 void Unit::setMaxHp(int maxHp)
 {
     m_maxHp = std::max(1, maxHp);
@@ -209,11 +204,6 @@ void Unit::setSkillName(const QString &skillName)
 void Unit::setSkillDescription(const QString &skillDescription)
 {
     m_skillDescription = skillDescription;
-}
-
-void Unit::setEquipmentDescriptions(const QStringList &equipmentDescriptions)
-{
-    m_equipmentDescriptions = equipmentDescriptions;
 }
 
 void Unit::applyDamage(int damage)

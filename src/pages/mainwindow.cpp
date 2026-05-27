@@ -1,7 +1,9 @@
 #include "pages/mainwindow.h"
 
+#include "core/uiscale.h"
 #include "pages/defeatpage.h"
 #include "core/gamemanager.h"
+#include "pages/drawpage.h"
 #include "pages/initinfopage.h"
 #include "pages/maingamepage.h"
 #include "core/pagemanager.h"
@@ -29,6 +31,7 @@ MainWindow::MainWindow(QWidget *parent)
     , profilePage(nullptr)
     , rulePage(nullptr)
     , initInfoPage(nullptr)
+    , drawPage(nullptr)
     , shopPage(nullptr)
     , mainGamePage(nullptr)
     , roundResultPage(nullptr)
@@ -45,6 +48,7 @@ MainWindow::MainWindow(QWidget *parent)
     profilePage = new ProfilePage(stackedWidget);
     rulePage = new RulePage(stackedWidget);
     initInfoPage = new InitInfoPage(stackedWidget);
+    drawPage = new DrawPage(stackedWidget);
     shopPage = new ShopPage(stackedWidget);
     mainGamePage = new MainGamePage(stackedWidget);
     roundResultPage = new RoundResultPage(stackedWidget);
@@ -55,6 +59,7 @@ MainWindow::MainWindow(QWidget *parent)
     pageManager->registerPage(PageId::Profile, profilePage);
     pageManager->registerPage(PageId::Rule, rulePage);
     pageManager->registerPage(PageId::InitInfo, initInfoPage);
+    pageManager->registerPage(PageId::Draw, drawPage);
     pageManager->registerPage(PageId::Shop, shopPage);
     pageManager->registerPage(PageId::MainGame, mainGamePage);
     pageManager->registerPage(PageId::RoundResult, roundResultPage);
@@ -78,8 +83,21 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     connect(initInfoPage, &InitInfoPage::enterGameClicked, this, [this]() {
+        prepareDrawPage();
+        pageManager->switchTo(PageId::Draw);
+    });
+
+    connect(drawPage, &DrawPage::encounterSelected, this, [this](const EnemyEncounterInfo &info) {
+        gameManager->setCurrentEncounterInfo(info);
+    });
+    connect(drawPage, &DrawPage::enterShopClicked, this, [this]() {
         prepareShopPage();
         pageManager->switchTo(PageId::Shop);
+    });
+    connect(drawPage, &DrawPage::enterDeployClicked, this, [this]() {
+        gameManager->setPhase(GamePhase::Deploy);
+        prepareMainGamePage();
+        pageManager->switchTo(PageId::MainGame);
     });
 
     connect(shopPage, &ShopPage::enterDeployClicked, this, [this]() {
@@ -105,8 +123,8 @@ MainWindow::MainWindow(QWidget *parent)
             pageManager->switchTo(PageId::Victory);
         } else {
             gameManager->nextRound();
-            prepareShopPage();
-            pageManager->switchTo(PageId::Shop);
+            prepareDrawPage();
+            pageManager->switchTo(PageId::Draw);
         }
     });
 
@@ -128,8 +146,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     setCentralWidget(stackedWidget);
     setWindowTitle(QStringLiteral("Synera"));
-    resize(1520, 980);
-    setMinimumSize(1280, 820);
+    resize(UiScale::size(1520, 980));
+    setMinimumSize(UiScale::size(1280, 820));
     statusBar()->hide();
 
     pageManager->switchTo(PageId::Start);
@@ -147,6 +165,12 @@ void MainWindow::prepareInitInfoPage()
                               gameManager->playerHp(),
                               gameManager->playerGold(),
                               gameManager->maxPopulation());
+}
+
+void MainWindow::prepareDrawPage()
+{
+    drawPage->setEncounterOptions(gameManager->currentRoundEncounterPool());
+    drawPage->setOwnedUnits(gameManager->ownedPlayerUnits(), gameManager->board().benchCapacity());
 }
 
 void MainWindow::prepareShopPage()

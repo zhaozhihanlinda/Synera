@@ -55,7 +55,6 @@ public:
     QString roleDescription() const;
     QString skillName() const;
     QString skillDescription() const;
-    QStringList equipmentDescriptions() const;
 
     void setMaxHp(int maxHp);
     void setHp(int hp);
@@ -70,7 +69,6 @@ public:
     void setRoleDescription(const QString &roleDescription);
     void setSkillName(const QString &skillName);
     void setSkillDescription(const QString &skillDescription);
-    void setEquipmentDescriptions(const QStringList &equipmentDescriptions);
 
     void applyDamage(int damage);
     void heal(int amount);
@@ -104,7 +102,6 @@ private:
     QString m_roleDescription;
     QString m_skillName;
     QString m_skillDescription;
-    QStringList m_equipmentDescriptions;
     UnitState m_state;
     BoardPosition m_boardPosition;
 };

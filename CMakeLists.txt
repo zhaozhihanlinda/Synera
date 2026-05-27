@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.16)
 
 project(Synera VERSION 0.1 LANGUAGES CXX)
 
+option(SYNERA_ENABLE_TRANSLATIONS "Enable Qt Linguist translation generation" OFF)
+
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -9,8 +11,16 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+
+if(SYNERA_ENABLE_TRANSLATIONS)
+    find_package(Qt${QT_VERSION_MAJOR} QUIET COMPONENTS LinguistTools)
+    if(NOT Qt${QT_VERSION_MAJOR}LinguistTools_FOUND)
+        message(WARNING "Qt LinguistTools not found. Translation generation will be disabled.")
+        set(SYNERA_ENABLE_TRANSLATIONS OFF)
+    endif()
+endif()
 
 set(TS_FILES Synera_zh_CN.ts)
 
@@ -26,6 +36,8 @@ set(PROJECT_SOURCES
         include/pages/rulepage.h
         src/pages/initinfopage.cpp
         include/pages/initinfopage.h
+        src/pages/drawpage.cpp
+        include/pages/drawpage.h
         src/pages/shoppage.cpp
         include/pages/shoppage.h
         src/pages/maingamepage.cpp
@@ -40,6 +52,8 @@ set(PROJECT_SOURCES
         include/core/gamemanager.h
         src/core/board.cpp
         include/core/board.h
+        src/core/enemyencounterinfo.cpp
+        include/core/enemyencounterinfo.h
         src/core/unit.cpp
         include/core/unit.h
         src/core/unittemplate.cpp
@@ -56,7 +70,6 @@ set(PROJECT_SOURCES
         include/core/pageid.h
         include/core/roundstate.h
         src/pages/mainwindow.ui
-        ${TS_FILES}
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -68,8 +81,6 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
 #    set_property(TARGET Synera APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
 #                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
 # For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
-
-    qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 else()
     if(ANDROID)
         add_library(Synera SHARED
@@ -82,8 +93,15 @@ else()
             ${PROJECT_SOURCES}
         )
     endif()
+endif()
 
-    qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
+if(SYNERA_ENABLE_TRANSLATIONS)
+    target_sources(Synera PRIVATE ${TS_FILES})
+    if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
+        qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
+    else()
+        qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
+    endif()
 endif()
 target_include_directories(Synera PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include

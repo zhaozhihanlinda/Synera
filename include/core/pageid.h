@@ -6,6 +6,7 @@ enum class PageId {
     Profile,
     Rule,
     InitInfo,
+    Draw,
     Shop,
     MainGame,
     RoundResult,

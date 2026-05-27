@@ -10,6 +10,7 @@ class StartPage;
 class ProfilePage;
 class RulePage;
 class InitInfoPage;
+class DrawPage;
 class ShopPage;
 class MainGamePage;
 class RoundResultPage;
@@ -39,6 +40,7 @@ private:
     ProfilePage *profilePage;
     RulePage *rulePage;
     InitInfoPage *initInfoPage;
+    DrawPage *drawPage;
     ShopPage *shopPage;
     MainGamePage *mainGamePage;
     RoundResultPage *roundResultPage;
@@ -46,6 +48,7 @@ private:
     DefeatPage *defeatPage;
 
     void prepareInitInfoPage();
+    void prepareDrawPage();
     void prepareShopPage();
     void prepareMainGamePage();
     void prepareRoundResultPage();

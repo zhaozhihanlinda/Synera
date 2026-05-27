@@ -5,7 +5,6 @@
 #include "core/playertemplatelibrary.h"
 #include "core/unit.h"
 #include "core/unittemplate.h"
-
 GameManager::GameManager(QObject *parent)
     : QObject(parent)
     , m_playerHp(100)
@@ -13,7 +12,7 @@ GameManager::GameManager(QObject *parent)
     , m_maxPopulation(3)
 {
     m_roundState.beginDeployPhase(1);
-    m_roundState.finalRound = 3;
+    m_roundState.finalRound = 5;
 }
 
 void GameManager::setPlayerProfile(const PlayerProfile &profile)
@@ -33,11 +32,11 @@ void GameManager::initNewGame()
     m_playerGold = 30;
     m_maxPopulation = 3;
     m_roundState.beginDeployPhase(1);
-    m_roundState.finalRound = 3;
+    m_roundState.finalRound = 5;
     m_lastBattleResult = BattleResult{};
+    drawCurrentRoundEncounter();
 
-    const UnitTemplate knightTemplate = playerUnitTemplateById(QStringLiteral("knight"));
-    const UnitTemplate archerTemplate = playerUnitTemplateById(QStringLiteral("archer"));
+    const QVector<UnitTemplate> starterTemplates = defaultStarterBenchTemplates();
     const UnitTemplate abyssServant{
         QStringLiteral("abyss_servant"),
         QStringLiteral("深渊侍从"),
@@ -53,8 +52,11 @@ void GameManager::initNewGame()
         5
     };
 
-    m_board.addBenchUnit(knightTemplate.createUnit(QStringLiteral("player_unit_001"), ControllerSide::PlayerCtrl));
-    m_board.addBenchUnit(archerTemplate.createUnit(QStringLiteral("player_unit_002"), ControllerSide::PlayerCtrl));
+    for (int index = 0; index < starterTemplates.size(); ++index) {
+        m_board.addBenchUnit(starterTemplates.at(index).createUnit(
+            QStringLiteral("player_unit_%1").arg(index + 1, 3, 10, QChar('0')),
+            ControllerSide::PlayerCtrl));
+    }
     m_board.placeUnit(abyssServant.createUnit(QStringLiteral("enemy_unit_001"), ControllerSide::EnemyCtrl), 1, 3);
     m_board.placeUnit(abyssServant.createUnit(QStringLiteral("enemy_unit_002"), ControllerSide::EnemyCtrl), 1, 4);
 }
@@ -62,6 +64,22 @@ void GameManager::initNewGame()
 void GameManager::nextRound()
 {
     m_roundState.beginDeployPhase(m_roundState.currentRound + 1);
+    drawCurrentRoundEncounter();
+}
+
+void GameManager::drawCurrentRoundEncounter()
+{
+    m_currentEncounterInfo = EnemyEncounterInfo{};
+}
+
+QVector<EnemyEncounterInfo> GameManager::currentRoundEncounterPool() const
+{
+    return enemyEncounterPoolForRound(m_roundState.currentRound);
+}
+
+void GameManager::setCurrentEncounterInfo(const EnemyEncounterInfo &info)
+{
+    m_currentEncounterInfo = info;
 }
 
 void GameManager::setPhase(GamePhase phase)
@@ -78,6 +96,11 @@ GamePhase GameManager::phase() const
     return m_roundState.phase;
 }
 
+EnemyEncounterInfo GameManager::currentEncounterInfo() const
+{
+    return m_currentEncounterInfo;
+}
+
 const RoundState &GameManager::roundState() const
 {
     return m_roundState;
@@ -86,6 +109,30 @@ const RoundState &GameManager::roundState() const
 bool GameManager::canInteractWithBoard() const
 {
     return m_roundState.canInteractWithBoard();
+}
+
+QVector<UnitPtr> GameManager::ownedPlayerUnits() const
+{
+    QVector<UnitPtr> units;
+    for (int slot = 0; slot < m_board.benchCapacity(); ++slot) {
+        if (const UnitPtr unit = m_board.benchUnitAt(slot)) {
+            if (unit->owner() == ControllerSide::PlayerCtrl) {
+                units.append(unit);
+            }
+        }
+    }
+
+    for (int row = 0; row < m_board.rowCount(); ++row) {
+        for (int col = 0; col < m_board.columnCount(); ++col) {
+            if (const UnitPtr unit = m_board.unitAt(row, col)) {
+                if (unit->owner() == ControllerSide::PlayerCtrl) {
+                    units.append(unit);
+                }
+            }
+        }
+    }
+
+    return units;
 }
 
 bool GameManager::canDeployUnitFromBench(int slot, const BoardPosition &target) const

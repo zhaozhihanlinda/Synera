@@ -1,5 +1,7 @@
 #include "widgets/benchwidget.h"
 
+#include "core/uiscale.h"
+
 #include <QApplication>
 #include <QDrag>
 #include <QDragEnterEvent>
@@ -22,7 +24,7 @@ BenchWidget::BenchWidget(QWidget *parent)
     , m_selectedSlot(-1)
     , m_pressedSlot(-1)
 {
-    setMinimumHeight(132);
+    setMinimumHeight(UiScale::height(132));
     setAcceptDrops(true);
 }
 
@@ -45,14 +47,15 @@ void BenchWidget::paintEvent(QPaintEvent *event)
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing, true);
 
-    const QRect panelRect = rect().adjusted(4, 6, -4, -6);
-    painter.setPen(QPen(QColor(182, 157, 104, 170), 2));
+    const QRect panelRect = rect().adjusted(UiScale::scaled(4), UiScale::scaled(6), -UiScale::scaled(4), -UiScale::scaled(6));
+    painter.setPen(QPen(QColor(182, 157, 104, 170), UiScale::scaled(2)));
     painter.setBrush(QColor(10, 16, 28, 212));
-    painter.drawRoundedRect(panelRect, 20, 20);
+    painter.drawRoundedRect(panelRect, UiScale::scaled(20), UiScale::scaled(20));
 
     painter.setPen(QColor("#e6d09f"));
-    painter.setFont(QFont(QStringLiteral("Helvetica"), 16, QFont::Bold));
-    painter.drawText(panelRect.adjusted(18, 10, -18, 0), Qt::AlignLeft | Qt::AlignTop, QStringLiteral("备战区"));
+    painter.setFont(QFont(QStringLiteral("Helvetica"), UiScale::scaled(16), QFont::Bold));
+    painter.drawText(panelRect.adjusted(UiScale::scaled(18), UiScale::scaled(10), -UiScale::scaled(18), 0),
+                     Qt::AlignLeft | Qt::AlignTop, QStringLiteral("备战区"));
 
     if (!m_board) {
         return;
@@ -65,14 +68,14 @@ void BenchWidget::paintEvent(QPaintEvent *event)
         const bool selected = index == m_selectedSlot;
 
         painter.setPen(QPen(selected ? QColor("#f4d796") : (unit ? QColor("#6fd4de") : QColor(125, 145, 171, 120)),
-                            selected ? 2.6 : (unit ? 2.0 : 1.3),
+                            selected ? UiScale::scaled(3) : (unit ? UiScale::scaled(2) : 1),
                             unit ? Qt::SolidLine : Qt::DashLine));
         painter.setBrush(selected ? QColor(48, 56, 74, 220) : (unit ? QColor(27, 51, 64, 210) : QColor(18, 26, 39, 170)));
-        painter.drawRoundedRect(slotRect, 14, 14);
+        painter.drawRoundedRect(slotRect, UiScale::scaled(14), UiScale::scaled(14));
 
         painter.setPen(unit ? QColor("#f5f2e9") : QColor("#7f8da6"));
-        painter.setFont(QFont(QStringLiteral("Helvetica"), unit ? 13 : 12, unit ? QFont::Bold : QFont::Medium));
-        painter.drawText(slotRect.adjusted(6, 8, -6, -8),
+        painter.setFont(QFont(QStringLiteral("Helvetica"), UiScale::scaled(unit ? 13 : 12), unit ? QFont::Bold : QFont::Medium));
+        painter.drawText(slotRect.adjusted(UiScale::scaled(6), UiScale::scaled(8), -UiScale::scaled(6), -UiScale::scaled(8)),
                          Qt::AlignCenter | Qt::TextWordWrap,
                          unit ? unit->name() : QStringLiteral("Bench %1").arg(index + 1));
     }
@@ -107,17 +110,21 @@ void BenchWidget::mouseMoveEvent(QMouseEvent *event)
         auto *mimeData = new QMimeData;
         mimeData->setData(kBenchDragMime, QByteArray::number(m_pressedSlot));
 
-        QPixmap pixmap(96, 72);
+        QPixmap pixmap(UiScale::size(96, 72));
         pixmap.fill(Qt::transparent);
         {
             QPainter painter(&pixmap);
             painter.setRenderHint(QPainter::Antialiasing, true);
-            painter.setPen(QPen(QColor("#6fd4de"), 2));
+            painter.setPen(QPen(QColor("#6fd4de"), UiScale::scaled(2)));
             painter.setBrush(QColor(27, 51, 64, 220));
-            painter.drawRoundedRect(pixmap.rect().adjusted(3, 3, -3, -3), 14, 14);
+            painter.drawRoundedRect(pixmap.rect().adjusted(UiScale::scaled(3), UiScale::scaled(3),
+                                                           -UiScale::scaled(3), -UiScale::scaled(3)),
+                                    UiScale::scaled(14), UiScale::scaled(14));
             painter.setPen(QColor("#f5f2e9"));
-            painter.setFont(QFont(QStringLiteral("Helvetica"), 11, QFont::Bold));
-            painter.drawText(pixmap.rect().adjusted(8, 8, -8, -8), Qt::AlignCenter | Qt::TextWordWrap, unit->name());
+            painter.setFont(QFont(QStringLiteral("Helvetica"), UiScale::scaled(11), QFont::Bold));
+            painter.drawText(pixmap.rect().adjusted(UiScale::scaled(8), UiScale::scaled(8),
+                                                    -UiScale::scaled(8), -UiScale::scaled(8)),
+                             Qt::AlignCenter | Qt::TextWordWrap, unit->name());
         }
 
         QDrag drag(this);
@@ -176,9 +183,10 @@ void BenchWidget::dropEvent(QDropEvent *event)
 
 QRect BenchWidget::slotRect(int index) const
 {
-    const QRect panelRect = rect().adjusted(4, 6, -4, -6);
-    const QRect contentRect = panelRect.adjusted(16, 40, -16, -16);
-    const int gap = 10;
+    const QRect panelRect = rect().adjusted(UiScale::scaled(4), UiScale::scaled(6), -UiScale::scaled(4), -UiScale::scaled(6));
+    const QRect contentRect = panelRect.adjusted(UiScale::scaled(16), UiScale::scaled(40),
+                                                 -UiScale::scaled(16), -UiScale::scaled(16));
+    const int gap = UiScale::scaled(10);
     const int slotCount = m_board ? m_board->benchCapacity() : Board::kDefaultBenchSlots;
     const int slotWidth = (contentRect.width() - (slotCount - 1) * gap) / slotCount;
     return QRect(contentRect.left() + index * (slotWidth + gap), contentRect.top(), slotWidth, contentRect.height());

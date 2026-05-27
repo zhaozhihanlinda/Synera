@@ -2,8 +2,10 @@
 #define GAMEMANAGER_H
 
 #include <QObject>
+#include <QVector>
 
 #include "core/board.h"
+#include "core/enemyencounterinfo.h"
 #include "core/playerprofile.h"
 #include "core/roundstate.h"
 
@@ -26,11 +28,16 @@ public:
 
     void initNewGame();
     void nextRound();
+    void drawCurrentRoundEncounter();
+    QVector<EnemyEncounterInfo> currentRoundEncounterPool() const;
+    void setCurrentEncounterInfo(const EnemyEncounterInfo &info);
 
     void setPhase(GamePhase phase);
     GamePhase phase() const;
+    EnemyEncounterInfo currentEncounterInfo() const;
     const RoundState &roundState() const;
     bool canInteractWithBoard() const;
+    QVector<UnitPtr> ownedPlayerUnits() const;
     bool canDeployUnitFromBench(int slot, const BoardPosition &target) const;
     bool deployUnitFromBench(int slot, const BoardPosition &target);
     bool canReturnUnitToBench(const BoardPosition &position) const;
@@ -62,6 +69,7 @@ private:
     int m_playerGold;
     int m_maxPopulation;
     RoundState m_roundState;
+    EnemyEncounterInfo m_currentEncounterInfo;
     BattleResult m_lastBattleResult;
 };
 

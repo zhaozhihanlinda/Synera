@@ -1,5 +1,7 @@
 #include "pages/rulepage.h"
 
+#include "core/uiscale.h"
+
 #include <QDebug>
 #include <QFrame>
 #include <QGraphicsDropShadowEffect>
@@ -14,25 +16,25 @@ RulePage::RulePage(QWidget *parent)
     , startButton(nullptr)
 {
     setAttribute(Qt::WA_StyledBackground, true);
-    setMinimumSize(1280, 820);
+    setMinimumSize(UiScale::size(1280, 820));
 
     auto *rootLayout = new QVBoxLayout(this);
-    rootLayout->setContentsMargins(96, 54, 96, 54);
+    rootLayout->setContentsMargins(UiScale::margins(96, 54, 96, 54));
     rootLayout->setSpacing(0);
     rootLayout->addStretch(1);
 
     auto *card = new QFrame(this);
     card->setObjectName("ruleCard");
-    card->setMaximumWidth(840);
+    card->setMaximumWidth(UiScale::width(840));
     auto *shadow = new QGraphicsDropShadowEffect(card);
-    shadow->setBlurRadius(34);
-    shadow->setOffset(0, 12);
+    shadow->setBlurRadius(UiScale::scaled(34));
+    shadow->setOffset(0, UiScale::scaled(12));
     shadow->setColor(QColor(0, 0, 0, 100));
     card->setGraphicsEffect(shadow);
 
     auto *cardLayout = new QVBoxLayout(card);
-    cardLayout->setContentsMargins(46, 42, 46, 36);
-    cardLayout->setSpacing(14);
+    cardLayout->setContentsMargins(UiScale::margins(46, 42, 46, 36));
+    cardLayout->setSpacing(UiScale::scaled(14));
 
     auto *titleLabel = new QLabel(QStringLiteral("基础规则"), card);
     titleLabel->setObjectName("pageTitle");
@@ -54,13 +56,13 @@ RulePage::RulePage(QWidget *parent)
     startButton = new QPushButton(QStringLiteral("开始游戏"), card);
     startButton->setObjectName("primaryButton");
     startButton->setCursor(Qt::PointingHandCursor);
-    startButton->setMinimumHeight(56);
+    startButton->setMinimumHeight(UiScale::height(56));
 
     cardLayout->addWidget(titleLabel);
     cardLayout->addWidget(subtitleLabel);
-    cardLayout->addSpacing(8);
+    cardLayout->addSpacing(UiScale::scaled(8));
     cardLayout->addWidget(rulesLabel);
-    cardLayout->addSpacing(8);
+    cardLayout->addSpacing(UiScale::scaled(8));
     cardLayout->addWidget(startButton);
 
     auto *cardRow = new QHBoxLayout;
@@ -70,7 +72,7 @@ RulePage::RulePage(QWidget *parent)
     rootLayout->addLayout(cardRow);
     rootLayout->addStretch(1);
 
-    setStyleSheet(R"(
+    setStyleSheet(UiScale::scaleStyleSheet(QStringLiteral(R"(
         RulePage { background-color: #090d15; }
         #ruleCard {
             background-color: rgba(11, 18, 31, 214);
@@ -105,7 +107,7 @@ RulePage::RulePage(QWidget *parent)
         #primaryButton:hover {
             background-color: #98723f;
         }
-    )");
+    )")));
 
     connect(startButton, &QPushButton::clicked, this, [this]() {
         qDebug() << "Rule page start clicked";
@@ -128,7 +130,7 @@ void RulePage::paintEvent(QPaintEvent *event)
     painter.fillRect(rect(), glow);
 
     painter.setPen(QPen(QColor(124, 139, 177, 22), 1));
-    const int gridSize = 48;
+    const int gridSize = UiScale::scaled(48);
     for (int x = 0; x < width(); x += gridSize) {
         painter.drawLine(x, 0, x, height());
     }
