@@ -1,6 +1,7 @@
 #include "pages/mainwindow.h"
 
 #include "core/uiscale.h"
+#include "pages/battlecountdownpage.h"
 #include "pages/defeatpage.h"
 #include "core/gamemanager.h"
 #include "pages/drawpage.h"
@@ -32,6 +33,7 @@ MainWindow::MainWindow(QWidget *parent)
     , initInfoPage(nullptr)
     , drawPage(nullptr)
     , shopPage(nullptr)
+    , battleCountdownPage(nullptr)
     , mainGamePage(nullptr)
     , roundResultPage(nullptr)
     , victoryPage(nullptr)
@@ -49,6 +51,7 @@ MainWindow::MainWindow(QWidget *parent)
     initInfoPage = new InitInfoPage(stackedWidget);
     drawPage = new DrawPage(stackedWidget);
     shopPage = new ShopPage(stackedWidget);
+    battleCountdownPage = new BattleCountdownPage(stackedWidget);
     mainGamePage = new MainGamePage(stackedWidget);
     roundResultPage = new RoundResultPage(stackedWidget);
     victoryPage = new VictoryPage(stackedWidget);
@@ -60,6 +63,7 @@ MainWindow::MainWindow(QWidget *parent)
     pageManager->registerPage(PageId::InitInfo, initInfoPage);
     pageManager->registerPage(PageId::Draw, drawPage);
     pageManager->registerPage(PageId::Shop, shopPage);
+    pageManager->registerPage(PageId::BattleCountdown, battleCountdownPage);
     pageManager->registerPage(PageId::MainGame, mainGamePage);
     pageManager->registerPage(PageId::RoundResult, roundResultPage);
     pageManager->registerPage(PageId::Victory, victoryPage);
@@ -115,6 +119,10 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     connect(mainGamePage, &MainGamePage::startBattleClicked, this, [this]() {
+        pageManager->switchTo(PageId::BattleCountdown);
+        battleCountdownPage->startCountdown(3);
+    });
+    connect(battleCountdownPage, &BattleCountdownPage::countdownFinished, this, [this]() {
         gameManager->beginBattlePhase();
         prepareMainGamePage();
         pageManager->switchTo(PageId::MainGame);

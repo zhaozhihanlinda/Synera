@@ -40,6 +40,8 @@ set(PROJECT_SOURCES
         include/pages/drawpage.h
         src/pages/shoppage.cpp
         include/pages/shoppage.h
+        src/pages/battlecountdownpage.cpp
+        include/pages/battlecountdownpage.h
         src/pages/maingamepage.cpp
         include/pages/maingamepage.h
         src/pages/roundresultpage.cpp

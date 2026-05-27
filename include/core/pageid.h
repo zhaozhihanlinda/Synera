@@ -8,6 +8,7 @@ enum class PageId {
     InitInfo,
     Draw,
     Shop,
+    BattleCountdown,
     MainGame,
     RoundResult,
     Victory,

@@ -44,9 +44,15 @@ private:
     GameManager *gameManager;
     int selectedBenchSlot;
     QLabel *playerHudLabel;
+    QLabel *playerHudTitleLabel;
     QLabel *roundHudLabel;
+    QLabel *roundHudTitleLabel;
     QLabel *enemyHudLabel;
+    QLabel *enemyHudTitleLabel;
     QLabel *maxPopulationHudLabel;
+    QLabel *maxPopulationHudTitleLabel;
+    QFrame *maxPopulationHudTile;
+    QWidget *headerButtonPanel;
     QLabel *phaseTitleLabel;
     QLabel *phaseDescriptionLabel;
     QLabel *battleMetaLabel;
@@ -54,14 +60,19 @@ private:
     QLabel *selectedNameLabel;
     QLabel *selectedStatsLabel;
     QLabel *selectedTraitsLabel;
+    QLabel *battleInfoNameLabel;
+    QLabel *battleInfoStatsLabel;
+    QLabel *battleInfoTraitsLabel;
     QLabel *deployWarningLabel;
     QPushButton *actionButton;
     QPushButton *returnShopButton;
     QTimer *battleTimer;
     BoardWidget *boardWidget;
     BenchWidget *benchWidget;
+    QWidget *sidePanelWidget;
     QFrame *deployPanel;
     QFrame *unitInfoPanel;
+    QFrame *battleInfoPanel;
 };
 
 #endif // MAINGAMEPAGE_H

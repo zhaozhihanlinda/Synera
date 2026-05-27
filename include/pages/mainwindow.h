@@ -12,6 +12,7 @@ class RulePage;
 class InitInfoPage;
 class DrawPage;
 class ShopPage;
+class BattleCountdownPage;
 class MainGamePage;
 class RoundResultPage;
 class VictoryPage;
@@ -42,6 +43,7 @@ private:
     InitInfoPage *initInfoPage;
     DrawPage *drawPage;
     ShopPage *shopPage;
+    BattleCountdownPage *battleCountdownPage;
     MainGamePage *mainGamePage;
     RoundResultPage *roundResultPage;
     VictoryPage *victoryPage;

@@ -17,7 +17,7 @@
 
 namespace {
 
-QFrame *createInfoTile(const QString &labelText, QLabel *valueLabel, QWidget *parent)
+QFrame *createInfoTile(const QString &labelText, QLabel *valueLabel, QWidget *parent, QLabel **titleLabelOut = nullptr)
 {
     auto *tile = new QFrame(parent);
     tile->setObjectName("infoTile");
@@ -28,6 +28,9 @@ QFrame *createInfoTile(const QString &labelText, QLabel *valueLabel, QWidget *pa
 
     auto *label = new QLabel(labelText, tile);
     label->setObjectName("tileLabel");
+    if (titleLabelOut) {
+        *titleLabelOut = label;
+    }
     valueLabel->setParent(tile);
     valueLabel->setObjectName("tileValue");
 
@@ -43,9 +46,15 @@ MainGamePage::MainGamePage(QWidget *parent)
     , gameManager(nullptr)
     , selectedBenchSlot(-1)
     , playerHudLabel(new QLabel(QStringLiteral("Player HP 100"), this))
+    , playerHudTitleLabel(nullptr)
     , roundHudLabel(new QLabel(QStringLiteral("Round 1 - 00:00"), this))
+    , roundHudTitleLabel(nullptr)
     , enemyHudLabel(new QLabel(QStringLiteral("Enemy HP 0"), this))
+    , enemyHudTitleLabel(nullptr)
     , maxPopulationHudLabel(new QLabel(QStringLiteral("3"), this))
+    , maxPopulationHudTitleLabel(nullptr)
+    , maxPopulationHudTile(nullptr)
+    , headerButtonPanel(nullptr)
     , phaseTitleLabel(new QLabel(this))
     , phaseDescriptionLabel(new QLabel(this))
     , battleMetaLabel(new QLabel(QStringLiteral("Player Units 0 | Enemy Units 0"), this))
@@ -53,14 +62,19 @@ MainGamePage::MainGamePage(QWidget *parent)
     , selectedNameLabel(new QLabel(QStringLiteral("未选中单位"), this))
     , selectedStatsLabel(new QLabel(QStringLiteral("点击棋盘单位以查看属性"), this))
     , selectedTraitsLabel(new QLabel(QStringLiteral("Traits: -"), this))
+    , battleInfoNameLabel(new QLabel(this))
+    , battleInfoStatsLabel(new QLabel(this))
+    , battleInfoTraitsLabel(new QLabel(this))
     , deployWarningLabel(new QLabel(this))
     , actionButton(nullptr)
     , returnShopButton(nullptr)
     , battleTimer(new QTimer(this))
     , boardWidget(nullptr)
     , benchWidget(nullptr)
+    , sidePanelWidget(nullptr)
     , deployPanel(nullptr)
     , unitInfoPanel(nullptr)
+    , battleInfoPanel(nullptr)
 {
     setAttribute(Qt::WA_StyledBackground, true);
     setMinimumSize(UiScale::size(1280, 820));
@@ -72,17 +86,19 @@ MainGamePage::MainGamePage(QWidget *parent)
     auto *headerRow = new QHBoxLayout;
     headerRow->setSpacing(UiScale::scaled(18));
 
-    auto *playerHudTile = createInfoTile(QStringLiteral("当前轮次"), playerHudLabel, this);
-    auto *roundHudTile = createInfoTile(QStringLiteral("敌人强度"), roundHudLabel, this);
-    auto *enemyHudTile = createInfoTile(QStringLiteral("布局类型"), enemyHudLabel, this);
-    auto *maxPopulationHudTile = createInfoTile(QStringLiteral("当前最大人口"), maxPopulationHudLabel, this);
+    auto *playerHudTile = createInfoTile(QStringLiteral("当前轮次"), playerHudLabel, this, &playerHudTitleLabel);
+    auto *roundHudTile = createInfoTile(QStringLiteral("敌人强度"), roundHudLabel, this, &roundHudTitleLabel);
+    auto *enemyHudTile = createInfoTile(QStringLiteral("布局类型"), enemyHudLabel, this, &enemyHudTitleLabel);
+    maxPopulationHudTile = createInfoTile(QStringLiteral("当前最大人口"), maxPopulationHudLabel, this, &maxPopulationHudTitleLabel);
 
     headerRow->addWidget(playerHudTile, 1);
     headerRow->addWidget(roundHudTile, 1);
     headerRow->addWidget(enemyHudTile, 1);
     headerRow->addWidget(maxPopulationHudTile, 1);
 
-    auto *headerButtonColumn = new QVBoxLayout;
+    headerButtonPanel = new QWidget(this);
+    auto *headerButtonColumn = new QVBoxLayout(headerButtonPanel);
+    headerButtonColumn->setContentsMargins(UiScale::margins(0, 0, 0, 0));
     headerButtonColumn->setSpacing(UiScale::scaled(10));
     actionButton = new QPushButton(QStringLiteral("开始战斗"), this);
     returnShopButton = new QPushButton(QStringLiteral("返回商店"), this);
@@ -94,7 +110,7 @@ MainGamePage::MainGamePage(QWidget *parent)
     returnShopButton->setMinimumHeight(UiScale::height(48));
     headerButtonColumn->addWidget(actionButton);
     headerButtonColumn->addWidget(returnShopButton);
-    headerRow->addLayout(headerButtonColumn);
+    headerRow->addWidget(headerButtonPanel);
 
     auto *phasePanel = new QFrame(this);
     phasePanel->setObjectName("phasePanel");
@@ -138,11 +154,38 @@ MainGamePage::MainGamePage(QWidget *parent)
     battlefieldRow->setSpacing(UiScale::scaled(18));
     battlefieldRow->addWidget(boardWidget, 3);
 
-    auto *sidePanel = new QVBoxLayout;
+    sidePanelWidget = new QWidget(this);
+    auto *sidePanel = new QVBoxLayout(sidePanelWidget);
+    sidePanel->setContentsMargins(UiScale::margins(0, 0, 0, 0));
     sidePanel->setSpacing(UiScale::scaled(18));
     sidePanel->addWidget(phasePanel);
     sidePanel->addWidget(unitInfoPanel, 1);
-    battlefieldRow->addLayout(sidePanel, 1);
+    battlefieldRow->addWidget(sidePanelWidget, 1);
+
+    battleInfoPanel = new QFrame(this);
+    battleInfoPanel->setObjectName("battleInfoPanel");
+    battleInfoPanel->hide();
+    auto *battleInfoLayout = new QVBoxLayout(battleInfoPanel);
+    battleInfoLayout->setContentsMargins(UiScale::margins(22, 18, 22, 18));
+    battleInfoLayout->setSpacing(UiScale::scaled(8));
+
+    auto *battleInfoHeader = new QHBoxLayout;
+    battleInfoHeader->setSpacing(UiScale::scaled(12));
+    battleInfoNameLabel->setObjectName("selectedName");
+    auto *closeBattleInfoButton = new QPushButton(QStringLiteral("X"), battleInfoPanel);
+    closeBattleInfoButton->setObjectName("closeInfoButton");
+    closeBattleInfoButton->setCursor(Qt::PointingHandCursor);
+    closeBattleInfoButton->setFixedSize(UiScale::size(40, 40));
+    battleInfoHeader->addWidget(battleInfoNameLabel, 1);
+    battleInfoHeader->addWidget(closeBattleInfoButton);
+
+    battleInfoStatsLabel->setObjectName("panelBody");
+    battleInfoStatsLabel->setWordWrap(true);
+    battleInfoTraitsLabel->setObjectName("panelCaption");
+    battleInfoTraitsLabel->setWordWrap(true);
+    battleInfoLayout->addLayout(battleInfoHeader);
+    battleInfoLayout->addWidget(battleInfoStatsLabel);
+    battleInfoLayout->addWidget(battleInfoTraitsLabel);
 
     deployPanel = new QFrame(this);
     deployPanel->setObjectName("deployPanel");
@@ -159,6 +202,7 @@ MainGamePage::MainGamePage(QWidget *parent)
 
     rootLayout->addLayout(headerRow);
     rootLayout->addLayout(battlefieldRow, 1);
+    rootLayout->addWidget(battleInfoPanel);
     rootLayout->addWidget(deployPanel);
 
     setStyleSheet(UiScale::scaleStyleSheet(QStringLiteral(R"(
@@ -168,10 +212,14 @@ MainGamePage::MainGamePage(QWidget *parent)
             font-size: 38px;
             font-weight: 800;
         }
-        #infoTile, #phasePanel, #unitInfoPanel, #deployPanel {
+        #infoTile, #phasePanel, #unitInfoPanel, #deployPanel, #battleInfoPanel {
             background-color: rgba(10, 16, 28, 215);
             border: 2px solid rgba(174, 150, 98, 180);
             border-radius: 22px;
+        }
+        #battleInfoPanel {
+            background-color: rgba(20, 24, 31, 232);
+            border: 2px solid rgba(111, 212, 222, 150);
         }
         #tileLabel {
             color: #91a5c7;
@@ -240,6 +288,17 @@ MainGamePage::MainGamePage(QWidget *parent)
         #secondaryButton:hover {
             background-color: #34657f;
         }
+        #closeInfoButton {
+            color: #ffffff;
+            background-color: rgba(78, 35, 48, 230);
+            border: 2px solid rgba(255, 124, 146, 180);
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 800;
+        }
+        #closeInfoButton:hover {
+            background-color: rgba(111, 45, 62, 235);
+        }
     )")));
 
     connect(actionButton, &QPushButton::clicked, this, [this]() {
@@ -252,6 +311,10 @@ MainGamePage::MainGamePage(QWidget *parent)
         if (gameManager && gameManager->phase() == GamePhase::Deploy) {
             emit returnShopClicked();
         }
+    });
+    connect(closeBattleInfoButton, &QPushButton::clicked, this, [this]() {
+        clearBoardSelection();
+        battleInfoPanel->hide();
     });
     connect(boardWidget, &BoardWidget::selectionChanged, this, &MainGamePage::refreshSelectedUnitPanel);
     connect(boardWidget, &BoardWidget::tileActivated, this, &MainGamePage::handleBoardActivation);
@@ -323,6 +386,19 @@ void MainGamePage::refreshPhaseUi()
     const RoundState state = gameManager ? gameManager->roundState() : RoundState{};
 
     if (state.phase == GamePhase::Deploy) {
+        if (playerHudTitleLabel) {
+            playerHudTitleLabel->setText(QStringLiteral("当前轮次"));
+        }
+        if (roundHudTitleLabel) {
+            roundHudTitleLabel->setText(QStringLiteral("敌人强度"));
+        }
+        if (enemyHudTitleLabel) {
+            enemyHudTitleLabel->setText(QStringLiteral("布局类型"));
+        }
+        maxPopulationHudTile->show();
+        headerButtonPanel->show();
+        sidePanelWidget->show();
+        battleInfoPanel->hide();
         phaseTitleLabel->setText(QStringLiteral("当前阶段：部署阶段"));
         phaseDescriptionLabel->setText(QStringLiteral("部署阶段用于从备战区拖动我方单位上场，并调整我方站位。"));
         actionButton->setText(QStringLiteral("开始战斗"));
@@ -332,6 +408,18 @@ void MainGamePage::refreshPhaseUi()
         deployPanel->show();
         battleTimer->stop();
     } else {
+        if (playerHudTitleLabel) {
+            playerHudTitleLabel->setText(QStringLiteral("玩家HP"));
+        }
+        if (roundHudTitleLabel) {
+            roundHudTitleLabel->setText(QStringLiteral("战斗计时"));
+        }
+        if (enemyHudTitleLabel) {
+            enemyHudTitleLabel->setText(QStringLiteral("敌方HP"));
+        }
+        maxPopulationHudTile->hide();
+        headerButtonPanel->hide();
+        sidePanelWidget->hide();
         phaseTitleLabel->setText(QStringLiteral("当前阶段：战斗阶段"));
         phaseDescriptionLabel->setText(QStringLiteral("战斗阶段会根据当前双方阵容进行结算。"));
         actionButton->setText(QStringLiteral("战斗进行中"));
@@ -348,10 +436,33 @@ void MainGamePage::refreshPhaseUi()
 void MainGamePage::refreshSelectedUnitPanel()
 {
     const UnitPtr unit = boardWidget->selectedUnit();
+    const bool isBattlePhase = gameManager && gameManager->phase() == GamePhase::Battle;
     if (!unit) {
         selectedNameLabel->setText(QStringLiteral("未选中单位"));
         selectedStatsLabel->setText(QStringLiteral("点击棋盘中的单位后，这里会显示基础属性和技能说明。"));
         selectedTraitsLabel->clear();
+        if (isBattlePhase) {
+            battleInfoPanel->hide();
+        }
+        return;
+    }
+
+    if (isBattlePhase) {
+        battleInfoNameLabel->setText(unit->name());
+        battleInfoStatsLabel->setText(
+            QStringLiteral("HP: %1 / %2    Mana: %3 / %4    ATK: %5    Skill: %6\n%7")
+                .arg(unit->hp())
+                .arg(unit->maxHp())
+                .arg(unit->mana())
+                .arg(unit->maxMana())
+                .arg(unit->atk())
+                .arg(unit->skillName().isEmpty() ? QStringLiteral("-") : unit->skillName())
+                .arg(unit->skillDescription().isEmpty() ? QStringLiteral("-") : unit->skillDescription()));
+        battleInfoTraitsLabel->setText(QStringLiteral("Traits: %1")
+                                           .arg(unit->traits().isEmpty()
+                                                    ? QStringLiteral("-")
+                                                    : unit->traits().join(QStringLiteral(", "))));
+        battleInfoPanel->show();
         return;
     }
 
@@ -436,9 +547,18 @@ void MainGamePage::refreshHud()
     const RoundState state = gameManager ? gameManager->roundState() : RoundState{};
     const EnemyEncounterInfo encounter = gameManager ? gameManager->currentEncounterInfo() : EnemyEncounterInfo{};
 
-    playerHudLabel->setText(QStringLiteral("第 %1 轮").arg(state.currentRound));
-    roundHudLabel->setText(encounter.difficultyLabel.isEmpty() ? QStringLiteral("-") : encounter.difficultyLabel);
-    enemyHudLabel->setText(encounter.styleLabel.isEmpty() ? QStringLiteral("-") : encounter.styleLabel);
+    if (gameManager && gameManager->phase() == GamePhase::Battle) {
+        const QString timerText = QStringLiteral("%1:%2")
+                                      .arg(state.battleElapsedSeconds / 60, 2, 10, QChar('0'))
+                                      .arg(state.battleElapsedSeconds % 60, 2, 10, QChar('0'));
+        playerHudLabel->setText(QStringLiteral("%1").arg(gameManager->playerHp()));
+        roundHudLabel->setText(QStringLiteral("Round %1 - %2").arg(state.currentRound).arg(timerText));
+        enemyHudLabel->setText(QStringLiteral("%1").arg(gameManager->board().totalHpForSide(ControllerSide::EnemyCtrl)));
+    } else {
+        playerHudLabel->setText(QStringLiteral("第 %1 轮").arg(state.currentRound));
+        roundHudLabel->setText(encounter.difficultyLabel.isEmpty() ? QStringLiteral("-") : encounter.difficultyLabel);
+        enemyHudLabel->setText(encounter.styleLabel.isEmpty() ? QStringLiteral("-") : encounter.styleLabel);
+    }
     maxPopulationHudLabel->setText(QString::number(gameManager ? gameManager->maxPopulation() : 3));
 }
 
