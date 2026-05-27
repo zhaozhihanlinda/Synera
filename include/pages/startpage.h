@@ -14,14 +14,12 @@ public:
 
 signals:
     void startClicked();
-    void exitClicked();
 
 protected:
     void paintEvent(QPaintEvent *event) override;
 
 private:
     QPushButton *startButton;
-    QPushButton *exitButton;
 };
 
 #endif // STARTPAGE_H

@@ -40,7 +40,6 @@ QFrame *createInfoTile(const QString &labelText, QLabel *valueLabel, QWidget *pa
 InitInfoPage::InitInfoPage(QWidget *parent)
     : QWidget(parent)
     , avatarValueLabel(new QLabel(QStringLiteral("Avatar 01"), this))
-    , avatarIdValueLabel(new QLabel(QStringLiteral("Avatar 01"), this))
     , nicknameValueLabel(new QLabel(QStringLiteral("未命名指挥官"), this))
     , hpValueLabel(new QLabel(QStringLiteral("100"), this))
     , goldValueLabel(new QLabel(QStringLiteral("30"), this))
@@ -91,17 +90,9 @@ InitInfoPage::InitInfoPage(QWidget *parent)
     nicknameTitle->setObjectName("sectionLabel");
     nicknameValueLabel->setObjectName("nicknameValue");
 
-    auto *avatarTitle = new QLabel(QStringLiteral("头像编号"), profilePanel);
-    avatarTitle->setObjectName("sectionLabel");
-
-    avatarIdValueLabel->setParent(profilePanel);
-    avatarIdValueLabel->setObjectName("bodyText");
-
+    identityLayout->addStretch(1);
     identityLayout->addWidget(nicknameTitle);
     identityLayout->addWidget(nicknameValueLabel);
-    identityLayout->addSpacing(UiScale::scaled(12));
-    identityLayout->addWidget(avatarTitle);
-    identityLayout->addWidget(avatarIdValueLabel);
     identityLayout->addStretch(1);
 
     profileLayout->addWidget(avatarValueLabel, 0, Qt::AlignTop);
@@ -293,7 +284,6 @@ void InitInfoPage::setGameInfo(const PlayerProfile &profile,
                                int populationLimit)
 {
     avatarValueLabel->setText(profile.avatarId);
-    avatarIdValueLabel->setText(profile.avatarId);
     nicknameValueLabel->setText(profile.nickname);
     hpValueLabel->setText(QString::number(hp));
     goldValueLabel->setText(QString::number(gold));

@@ -68,7 +68,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(startPage, &StartPage::startClicked, this, [this]() {
         pageManager->switchTo(PageId::Profile);
     });
-    connect(startPage, &StartPage::exitClicked, qApp, &QApplication::quit);
 
     connect(profilePage, &ProfilePage::confirmClicked, this, [this](const PlayerProfile &profile) {
         gameManager->setPlayerProfile(profile);

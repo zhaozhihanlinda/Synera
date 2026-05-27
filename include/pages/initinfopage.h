@@ -30,7 +30,6 @@ protected:
 
 private:
     QLabel *avatarValueLabel;
-    QLabel *avatarIdValueLabel;
     QLabel *nicknameValueLabel;
     QLabel *hpValueLabel;
     QLabel *goldValueLabel;
