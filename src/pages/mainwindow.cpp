@@ -179,9 +179,9 @@ void MainWindow::prepareShopPage()
 {
     shopPage->setGameInfo(gameManager->currentRound(),
                           gameManager->playerGold(),
-                          gameManager->playerHp(),
                           gameManager->currentPopulation(),
-                          gameManager->maxPopulation());
+                          gameManager->maxPopulation(),
+                          gameManager->ownedPlayerUnits());
 }
 
 void MainWindow::prepareMainGamePage()

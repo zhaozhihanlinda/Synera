@@ -6,6 +6,7 @@
 #include <QDebug>
 #include <QFrame>
 #include <QGridLayout>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QPaintEvent>
 #include <QPainter>
@@ -69,11 +70,14 @@ QFrame *createShopCard(const UnitTemplate &unitTemplate, QWidget *parent)
 ShopPage::ShopPage(QWidget *parent)
     : QWidget(parent)
     , roundValueLabel(new QLabel(QStringLiteral("1"), this))
-    , hpValueLabel(new QLabel(QStringLiteral("100"), this))
     , goldValueLabel(new QLabel(QStringLiteral("30"), this))
     , populationValueLabel(new QLabel(QStringLiteral("0 / 3"), this))
     , enterDeployButton(nullptr)
+    , ownedUnitsLayout(nullptr)
     , shopCardsLayout(nullptr)
+    , unitDetailOverlay(nullptr)
+    , unitDetailTitleLabel(nullptr)
+    , unitDetailBodyLabel(nullptr)
 {
     setAttribute(Qt::WA_StyledBackground, true);
     setMinimumSize(UiScale::size(1280, 820));
@@ -87,13 +91,11 @@ ShopPage::ShopPage(QWidget *parent)
     auto *subtitleLabel = new QLabel(QStringLiteral("Placeholder shop before deployment."), this);
     subtitleLabel->setObjectName("pageSubtitle");
 
-    auto *statsGrid = new QGridLayout;
-    statsGrid->setHorizontalSpacing(UiScale::scaled(16));
-    statsGrid->setVerticalSpacing(UiScale::scaled(16));
-    statsGrid->addWidget(createInfoTile(QStringLiteral("当前回合"), roundValueLabel, this), 0, 0);
-    statsGrid->addWidget(createInfoTile(QStringLiteral("玩家金币"), goldValueLabel, this), 0, 1);
-    statsGrid->addWidget(createInfoTile(QStringLiteral("玩家血量"), hpValueLabel, this), 1, 0);
-    statsGrid->addWidget(createInfoTile(QStringLiteral("玩家人口"), populationValueLabel, this), 1, 1);
+    auto *statsRow = new QHBoxLayout;
+    statsRow->setSpacing(UiScale::scaled(16));
+    statsRow->addWidget(createInfoTile(QStringLiteral("玩家金币"), goldValueLabel, this), 1);
+    statsRow->addWidget(createInfoTile(QStringLiteral("玩家人口"), populationValueLabel, this), 1);
+    statsRow->addWidget(createInfoTile(QStringLiteral("当前回合"), roundValueLabel, this), 1);
 
     auto *shopPanel = new QFrame(this);
     shopPanel->setObjectName("shopPanel");
@@ -101,16 +103,15 @@ ShopPage::ShopPage(QWidget *parent)
     shopPanelLayout->setContentsMargins(UiScale::margins(36, 32, 36, 32));
     shopPanelLayout->setSpacing(UiScale::scaled(18));
 
-    auto *shopTitle = new QLabel(QStringLiteral("初始角色池"), shopPanel);
+    auto *ownedTitle = new QLabel(QStringLiteral("已拥有角色"), shopPanel);
+    ownedTitle->setObjectName("panelTitle");
+
+    ownedUnitsLayout = new QGridLayout;
+    ownedUnitsLayout->setHorizontalSpacing(UiScale::scaled(12));
+    ownedUnitsLayout->setVerticalSpacing(UiScale::scaled(12));
+
+    auto *shopTitle = new QLabel(QStringLiteral("可购买角色"), shopPanel);
     shopTitle->setObjectName("panelTitle");
-    auto *shopBody = new QLabel(QStringLiteral("当前阶段只展示我方角色模板，不实现购买与刷新。"), shopPanel);
-    shopBody->setObjectName("panelBody");
-    shopBody->setWordWrap(true);
-    auto *reservedHint = new QLabel(
-        QStringLiteral("提示：技能和金币字段已作为静态设计数据保留，当前仅展示，不实现购买或施法逻辑。"),
-        shopPanel);
-    reservedHint->setObjectName("hintText");
-    reservedHint->setWordWrap(true);
 
     shopCardsLayout = new QGridLayout;
     shopCardsLayout->setHorizontalSpacing(UiScale::scaled(14));
@@ -122,16 +123,50 @@ ShopPage::ShopPage(QWidget *parent)
     enterDeployButton->setCursor(Qt::PointingHandCursor);
     enterDeployButton->setMinimumHeight(UiScale::height(56));
 
+    unitDetailOverlay = new QFrame(this);
+    unitDetailOverlay->setObjectName("unitDetailOverlay");
+    unitDetailOverlay->hide();
+    auto *overlayLayout = new QVBoxLayout(unitDetailOverlay);
+    overlayLayout->setContentsMargins(UiScale::margins(0, 0, 0, 0));
+    auto *overlayCenter = new QHBoxLayout;
+    overlayCenter->addStretch(1);
+
+    auto *detailCard = new QFrame(unitDetailOverlay);
+    detailCard->setObjectName("unitDetailCard");
+    detailCard->setMaximumWidth(UiScale::width(620));
+    auto *detailLayout = new QVBoxLayout(detailCard);
+    detailLayout->setContentsMargins(UiScale::margins(30, 28, 30, 24));
+    detailLayout->setSpacing(UiScale::scaled(14));
+    unitDetailTitleLabel = new QLabel(QStringLiteral("角色信息"), detailCard);
+    unitDetailTitleLabel->setObjectName("panelTitle");
+    unitDetailBodyLabel = new QLabel(detailCard);
+    unitDetailBodyLabel->setObjectName("panelBody");
+    unitDetailBodyLabel->setWordWrap(true);
+    auto *closeDetailButton = new QPushButton(QStringLiteral("关闭"), detailCard);
+    closeDetailButton->setObjectName("primaryButton");
+    closeDetailButton->setCursor(Qt::PointingHandCursor);
+    closeDetailButton->setMinimumHeight(UiScale::height(52));
+    detailLayout->addWidget(unitDetailTitleLabel);
+    detailLayout->addWidget(unitDetailBodyLabel);
+    detailLayout->addWidget(closeDetailButton, 0, Qt::AlignRight);
+
+    overlayCenter->addWidget(detailCard);
+    overlayCenter->addStretch(1);
+    overlayLayout->addStretch(1);
+    overlayLayout->addLayout(overlayCenter);
+    overlayLayout->addStretch(1);
+
+    shopPanelLayout->addWidget(ownedTitle);
+    shopPanelLayout->addLayout(ownedUnitsLayout);
+    shopPanelLayout->addSpacing(UiScale::scaled(10));
     shopPanelLayout->addWidget(shopTitle);
-    shopPanelLayout->addWidget(shopBody);
-    shopPanelLayout->addWidget(reservedHint);
     shopPanelLayout->addLayout(shopCardsLayout);
     shopPanelLayout->addSpacing(UiScale::scaled(8));
     shopPanelLayout->addWidget(enterDeployButton, 0, Qt::AlignLeft);
 
     rootLayout->addWidget(titleLabel);
     rootLayout->addWidget(subtitleLabel);
-    rootLayout->addLayout(statsGrid);
+    rootLayout->addLayout(statsRow);
     rootLayout->addWidget(shopPanel, 1);
 
     setStyleSheet(UiScale::scaleStyleSheet(QStringLiteral(R"(
@@ -151,10 +186,32 @@ ShopPage::ShopPage(QWidget *parent)
             border: 2px solid rgba(174, 150, 98, 180);
             border-radius: 24px;
         }
+        #unitDetailOverlay {
+            background-color: rgba(4, 7, 13, 165);
+            border-radius: 24px;
+        }
+        #unitDetailCard {
+            background-color: rgba(12, 18, 31, 238);
+            border: 2px solid rgba(178, 151, 98, 205);
+            border-radius: 24px;
+        }
         #shopCard {
             background-color: rgba(16, 26, 40, 210);
             border: 2px solid rgba(111, 212, 222, 150);
             border-radius: 18px;
+        }
+        #ownedUnitButton {
+            color: #f5e4bd;
+            background-color: rgba(16, 26, 40, 220);
+            border: 2px solid rgba(111, 212, 222, 140);
+            border-radius: 16px;
+            font-size: 18px;
+            font-weight: 800;
+            padding: 12px 18px;
+        }
+        #ownedUnitButton:hover {
+            background-color: rgba(28, 48, 67, 230);
+            border-color: #dbc183;
         }
         #tileLabel {
             color: #91a5c7;
@@ -219,6 +276,7 @@ ShopPage::ShopPage(QWidget *parent)
         qDebug() << "Enter deploy clicked";
         emit enterDeployClicked();
     });
+    connect(closeDetailButton, &QPushButton::clicked, unitDetailOverlay, &QWidget::hide);
 }
 
 void ShopPage::populateShopCards()
@@ -233,12 +291,71 @@ void ShopPage::populateShopCards()
     }
 }
 
-void ShopPage::setGameInfo(int round, int gold, int hp, int currentPopulation, int maxPopulation)
+void ShopPage::setGameInfo(int round,
+                           int gold,
+                           int currentPopulation,
+                           int maxPopulation,
+                           const QVector<UnitPtr> &units)
 {
     roundValueLabel->setText(QString::number(round));
     goldValueLabel->setText(QString::number(gold));
-    hpValueLabel->setText(QString::number(hp));
     populationValueLabel->setText(QStringLiteral("%1 / %2").arg(currentPopulation).arg(maxPopulation));
+    ownedUnits = units;
+    refreshOwnedUnits();
+}
+
+void ShopPage::refreshOwnedUnits()
+{
+    if (!ownedUnitsLayout) {
+        return;
+    }
+
+    QLayoutItem *child = nullptr;
+    while ((child = ownedUnitsLayout->takeAt(0)) != nullptr) {
+        if (child->widget()) {
+            child->widget()->deleteLater();
+        }
+        delete child;
+    }
+
+    for (int index = 0; index < ownedUnits.size(); ++index) {
+        const UnitPtr unit = ownedUnits.at(index);
+        auto *unitButton = new QPushButton(unit ? unit->name() : QStringLiteral("-"), this);
+        unitButton->setObjectName("ownedUnitButton");
+        unitButton->setCursor(Qt::PointingHandCursor);
+        unitButton->setMinimumHeight(UiScale::height(52));
+        ownedUnitsLayout->addWidget(unitButton, index / 4, index % 4);
+        connect(unitButton, &QPushButton::clicked, this, [this, unit]() {
+            showOwnedUnitDetail(unit);
+        });
+    }
+}
+
+void ShopPage::showOwnedUnitDetail(const UnitPtr &unit)
+{
+    if (!unit || !unitDetailOverlay || !unitDetailTitleLabel || !unitDetailBodyLabel) {
+        return;
+    }
+
+    unitDetailTitleLabel->setText(unit->name());
+    unitDetailBodyLabel->setText(
+        QStringLiteral("Cost: %1\nHP: %2 / %3\nMana: %4 / %5\nATK: %6\nRange: %7\nAS: %8\nMana Gain: %9 / %10\nSkill: %11\nSkill Detail: %12\nRole: %13")
+            .arg(unit->cost())
+            .arg(unit->hp())
+            .arg(unit->maxHp())
+            .arg(unit->mana())
+            .arg(unit->maxMana())
+            .arg(unit->atk())
+            .arg(unit->range())
+            .arg(unit->attackSpeed(), 0, 'f', 1)
+            .arg(unit->manaGainOnAttack())
+            .arg(unit->manaGainOnHit())
+            .arg(unit->skillName().isEmpty() ? QStringLiteral("-") : unit->skillName())
+            .arg(unit->skillDescription().isEmpty() ? QStringLiteral("-") : unit->skillDescription())
+            .arg(unit->roleDescription().isEmpty() ? QStringLiteral("-") : unit->roleDescription()));
+    unitDetailOverlay->setGeometry(rect());
+    unitDetailOverlay->show();
+    unitDetailOverlay->raise();
 }
 
 void ShopPage::paintEvent(QPaintEvent *event)
