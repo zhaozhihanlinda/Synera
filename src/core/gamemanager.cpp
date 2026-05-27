@@ -35,6 +35,7 @@ void GameManager::initNewGame()
     m_roundState.beginDeployPhase(1);
     m_roundState.finalRound = 5;
     m_lastBattleResult = BattleResult{};
+    m_purchasedUnits.clear();
     drawCurrentRoundEncounter();
 
     const QVector<UnitTemplate> starterTemplates = defaultStarterBenchTemplates();
@@ -119,6 +120,109 @@ QVector<UnitPtr> GameManager::ownedPlayerUnits() const
     }
 
     return units;
+}
+
+bool GameManager::canBuyUnit(const QString &templateId) const
+{
+    const UnitTemplate unitTemplate = playerUnitTemplateById(templateId);
+    return !unitTemplate.templateId.isEmpty()
+        && m_playerGold >= unitTemplate.cost
+        && ownedPlayerUnits().size() < m_board.benchCapacity()
+        && m_board.canAddBenchUnit();
+}
+
+bool GameManager::buyUnit(const QString &templateId)
+{
+    if (!canBuyUnit(templateId)) {
+        return false;
+    }
+
+    const UnitTemplate unitTemplate = playerUnitTemplateById(templateId);
+    const QString instanceId = QStringLiteral("player_unit_%1_%2")
+                                   .arg(unitTemplate.templateId)
+                                   .arg(ownedPlayerUnits().size() + 1, 3, 10, QChar('0'));
+    if (!m_board.addBenchUnit(unitTemplate.createUnit(instanceId, ControllerSide::PlayerCtrl))) {
+        return false;
+    }
+
+    m_purchasedUnits.append({unitTemplate.templateId, instanceId});
+    m_playerGold -= unitTemplate.cost;
+    return true;
+}
+
+bool GameManager::canSellUnit(const QString &templateId) const
+{
+    const UnitTemplate unitTemplate = playerUnitTemplateById(templateId);
+    if (unitTemplate.templateId.isEmpty()) {
+        return false;
+    }
+
+    if (m_roundState.currentRound == 1) {
+        for (const PurchasedUnitRecord &record : m_purchasedUnits) {
+            if (record.templateId == templateId) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    for (const UnitPtr &unit : ownedPlayerUnits()) {
+        if (unit && unit->name() == unitTemplate.displayName) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool GameManager::sellUnit(const QString &templateId)
+{
+    if (!canSellUnit(templateId)) {
+        return false;
+    }
+
+    const UnitTemplate unitTemplate = playerUnitTemplateById(templateId);
+    QString unitIdToRemove;
+
+    if (m_roundState.currentRound == 1) {
+        for (const PurchasedUnitRecord &record : m_purchasedUnits) {
+            if (record.templateId == templateId) {
+                unitIdToRemove = record.unitId;
+                break;
+            }
+        }
+    } else {
+        for (const UnitPtr &unit : ownedPlayerUnits()) {
+            if (unit && unit->name() == unitTemplate.displayName) {
+                unitIdToRemove = unit->id();
+                break;
+            }
+        }
+    }
+
+    if (unitIdToRemove.isEmpty() || !removePlayerUnitById(unitIdToRemove)) {
+        return false;
+    }
+
+    for (int index = 0; index < m_purchasedUnits.size(); ++index) {
+        if (m_purchasedUnits.at(index).unitId == unitIdToRemove) {
+            m_purchasedUnits.removeAt(index);
+            break;
+        }
+    }
+
+    m_playerGold += unitTemplate.cost;
+    return true;
+}
+
+QVector<QString> GameManager::sellableUnitTemplateIds() const
+{
+    QVector<QString> templateIds;
+    for (const UnitTemplate &unitTemplate : allPlayerUnitTemplates()) {
+        if (canSellUnit(unitTemplate.templateId)) {
+            templateIds.append(unitTemplate.templateId);
+        }
+    }
+    return templateIds;
 }
 
 bool GameManager::canDeployUnitFromBench(int slot, const BoardPosition &target) const
@@ -328,4 +432,26 @@ int GameManager::combatPowerForSide(ControllerSide side) const
         }
     }
     return power;
+}
+
+bool GameManager::removePlayerUnitById(const QString &unitId)
+{
+    for (int slot = 0; slot < m_board.benchCapacity(); ++slot) {
+        const UnitPtr unit = m_board.benchUnitAt(slot);
+        if (unit && unit->owner() == ControllerSide::PlayerCtrl && unit->id() == unitId) {
+            m_board.removeBenchUnit(slot);
+            return true;
+        }
+    }
+
+    for (int row = 0; row < m_board.rowCount(); ++row) {
+        for (int col = 0; col < m_board.columnCount(); ++col) {
+            const UnitPtr unit = m_board.unitAt(row, col);
+            if (unit && unit->owner() == ControllerSide::PlayerCtrl && unit->id() == unitId) {
+                m_board.removeUnit(row, col);
+                return true;
+            }
+        }
+    }
+    return false;
 }

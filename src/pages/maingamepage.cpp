@@ -45,6 +45,7 @@ MainGamePage::MainGamePage(QWidget *parent)
     , playerHudLabel(new QLabel(QStringLiteral("Player HP 100"), this))
     , roundHudLabel(new QLabel(QStringLiteral("Round 1 - 00:00"), this))
     , enemyHudLabel(new QLabel(QStringLiteral("Enemy HP 0"), this))
+    , maxPopulationHudLabel(new QLabel(QStringLiteral("3"), this))
     , phaseTitleLabel(new QLabel(this))
     , phaseDescriptionLabel(new QLabel(this))
     , battleMetaLabel(new QLabel(QStringLiteral("Player Units 0 | Enemy Units 0"), this))
@@ -52,6 +53,7 @@ MainGamePage::MainGamePage(QWidget *parent)
     , selectedNameLabel(new QLabel(QStringLiteral("未选中单位"), this))
     , selectedStatsLabel(new QLabel(QStringLiteral("点击棋盘单位以查看属性"), this))
     , selectedTraitsLabel(new QLabel(QStringLiteral("Traits: -"), this))
+    , deployWarningLabel(new QLabel(this))
     , actionButton(nullptr)
     , returnShopButton(nullptr)
     , battleTimer(new QTimer(this))
@@ -73,10 +75,12 @@ MainGamePage::MainGamePage(QWidget *parent)
     auto *playerHudTile = createInfoTile(QStringLiteral("当前轮次"), playerHudLabel, this);
     auto *roundHudTile = createInfoTile(QStringLiteral("敌人强度"), roundHudLabel, this);
     auto *enemyHudTile = createInfoTile(QStringLiteral("布局类型"), enemyHudLabel, this);
+    auto *maxPopulationHudTile = createInfoTile(QStringLiteral("当前最大人口"), maxPopulationHudLabel, this);
 
     headerRow->addWidget(playerHudTile, 1);
     headerRow->addWidget(roundHudTile, 1);
     headerRow->addWidget(enemyHudTile, 1);
+    headerRow->addWidget(maxPopulationHudTile, 1);
 
     auto *headerButtonColumn = new QVBoxLayout;
     headerButtonColumn->setSpacing(UiScale::scaled(10));
@@ -146,7 +150,11 @@ MainGamePage::MainGamePage(QWidget *parent)
     deployLayout->setContentsMargins(UiScale::margins(14, 12, 14, 12));
     deployLayout->setSpacing(UiScale::scaled(10));
 
+    deployWarningLabel->setObjectName("deployWarning");
+    deployWarningLabel->setAlignment(Qt::AlignCenter);
+    deployWarningLabel->hide();
     benchWidget = new BenchWidget(deployPanel);
+    deployLayout->addWidget(deployWarningLabel);
     deployLayout->addWidget(benchWidget);
 
     rootLayout->addLayout(headerRow);
@@ -205,6 +213,11 @@ MainGamePage::MainGamePage(QWidget *parent)
             font-size: 14px;
             font-weight: 600;
         }
+        #deployWarning {
+            color: #ff6b81;
+            font-size: 18px;
+            font-weight: 800;
+        }
         #primaryButton, #secondaryButton {
             color: #ffffff;
             border-radius: 18px;
@@ -249,6 +262,10 @@ MainGamePage::MainGamePage(QWidget *parent)
         if (gameManager->deployUnitFromBench(slot, position)) {
             clearBenchSelection();
         } else {
+            if (gameManager->board().benchUnitAt(slot)
+                && gameManager->currentPopulation() >= gameManager->maxPopulation()) {
+                showDeployWarning(QStringLiteral("已达到最大人口"));
+            }
             refreshBoardWidgets();
         }
     });
@@ -403,6 +420,17 @@ void MainGamePage::handleBenchSlotClick(int slot)
     refreshBoardWidgets();
 }
 
+void MainGamePage::showDeployWarning(const QString &message)
+{
+    deployWarningLabel->setText(message);
+    deployWarningLabel->show();
+    QTimer::singleShot(1800, this, [this, message]() {
+        if (deployWarningLabel->text() == message) {
+            deployWarningLabel->hide();
+        }
+    });
+}
+
 void MainGamePage::refreshHud()
 {
     const RoundState state = gameManager ? gameManager->roundState() : RoundState{};
@@ -411,6 +439,7 @@ void MainGamePage::refreshHud()
     playerHudLabel->setText(QStringLiteral("第 %1 轮").arg(state.currentRound));
     roundHudLabel->setText(encounter.difficultyLabel.isEmpty() ? QStringLiteral("-") : encounter.difficultyLabel);
     enemyHudLabel->setText(encounter.styleLabel.isEmpty() ? QStringLiteral("-") : encounter.styleLabel);
+    maxPopulationHudLabel->setText(QString::number(gameManager ? gameManager->maxPopulation() : 3));
 }
 
 void MainGamePage::tickBattleTimer()

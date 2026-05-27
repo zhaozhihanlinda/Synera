@@ -27,6 +27,9 @@ UnitTemplate createEnemyTemplate(const QString &templateId,
 
 QVector<EnemyFormation> allEnemyFormations()
 {
+    // Temporary placeholder enemy data.
+    // These formations only keep the current draw-to-board flow working until
+    // the final enemy roster and formation rules are provided.
     const UnitTemplate guard = createEnemyTemplate(QStringLiteral("enemy_guard"),
                                                    QStringLiteral("敌方卫兵"),
                                                    {QStringLiteral("前排")},

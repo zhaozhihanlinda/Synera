@@ -34,7 +34,11 @@ QFrame *createInfoTile(const QString &labelText, QLabel *valueLabel, QWidget *pa
     return tile;
 }
 
-QFrame *createShopCard(const UnitTemplate &unitTemplate, QWidget *parent)
+QFrame *createShopCard(const UnitTemplate &unitTemplate,
+                       bool canBuy,
+                       bool canSell,
+                       QWidget *parent,
+                       const QObject *receiver)
 {
     auto *card = new QFrame(parent);
     card->setObjectName("shopCard");
@@ -56,12 +60,42 @@ QFrame *createShopCard(const UnitTemplate &unitTemplate, QWidget *parent)
     auto *roleLabel = new QLabel(unitTemplate.roleDescription, card);
     roleLabel->setObjectName("cardBody");
     roleLabel->setWordWrap(true);
+    auto *buyButton = new QPushButton(QStringLiteral("购买"), card);
+    buyButton->setObjectName("buyButton");
+    buyButton->setEnabled(canBuy);
+    buyButton->setCursor(canBuy ? Qt::PointingHandCursor : Qt::ForbiddenCursor);
+    buyButton->setMinimumHeight(UiScale::height(42));
+    auto *sellButton = new QPushButton(QStringLiteral("取消购买"), card);
+    sellButton->setObjectName("cancelBuyButton");
+    sellButton->setEnabled(canSell);
+    sellButton->setCursor(canSell ? Qt::PointingHandCursor : Qt::ForbiddenCursor);
+    sellButton->setMinimumHeight(UiScale::height(42));
+
+    auto *buttonRow = new QHBoxLayout;
+    buttonRow->setSpacing(UiScale::scaled(10));
+    buttonRow->addWidget(buyButton);
+    buttonRow->addWidget(sellButton);
 
     layout->addWidget(nameLabel);
     layout->addWidget(costLabel);
     layout->addWidget(skillLabel);
     layout->addWidget(roleLabel);
     layout->addStretch(1);
+    layout->addLayout(buttonRow);
+
+    QObject::connect(buyButton, &QPushButton::clicked, receiver, [receiver, unitTemplate]() {
+        auto *shopPage = qobject_cast<const ShopPage *>(receiver);
+        if (shopPage) {
+            emit const_cast<ShopPage *>(shopPage)->buyUnitClicked(unitTemplate.templateId);
+        }
+    });
+    QObject::connect(sellButton, &QPushButton::clicked, receiver, [receiver, unitTemplate]() {
+        auto *shopPage = qobject_cast<const ShopPage *>(receiver);
+        if (shopPage) {
+            emit const_cast<ShopPage *>(shopPage)->sellUnitClicked(unitTemplate.templateId);
+        }
+    });
+
     return card;
 }
 
@@ -73,6 +107,8 @@ ShopPage::ShopPage(QWidget *parent)
     , goldValueLabel(new QLabel(QStringLiteral("30"), this))
     , populationValueLabel(new QLabel(QStringLiteral("0 / 3"), this))
     , enterDeployButton(nullptr)
+    , currentGold(30)
+    , ownedUnitCapacity(8)
     , ownedUnitsLayout(nullptr)
     , shopCardsLayout(nullptr)
     , unitDetailOverlay(nullptr)
@@ -94,7 +130,7 @@ ShopPage::ShopPage(QWidget *parent)
     auto *statsRow = new QHBoxLayout;
     statsRow->setSpacing(UiScale::scaled(16));
     statsRow->addWidget(createInfoTile(QStringLiteral("玩家金币"), goldValueLabel, this), 1);
-    statsRow->addWidget(createInfoTile(QStringLiteral("玩家人口"), populationValueLabel, this), 1);
+    statsRow->addWidget(createInfoTile(QStringLiteral("玩家最大人口"), populationValueLabel, this), 1);
     statsRow->addWidget(createInfoTile(QStringLiteral("当前回合"), roundValueLabel, this), 1);
 
     auto *shopPanel = new QFrame(this);
@@ -270,6 +306,35 @@ ShopPage::ShopPage(QWidget *parent)
         #primaryButton:hover {
             background-color: #98723f;
         }
+        #buyButton {
+            color: #ffffff;
+            background-color: #7d5a2c;
+            border: 2px solid #dbc183;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 700;
+            padding: 8px 16px;
+        }
+        #buyButton:hover {
+            background-color: #98723f;
+        }
+        #cancelBuyButton {
+            color: #ffffff;
+            background-color: #264d67;
+            border: 2px solid #84bfd6;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 700;
+            padding: 8px 16px;
+        }
+        #cancelBuyButton:hover {
+            background-color: #34657f;
+        }
+        #buyButton:disabled, #cancelBuyButton:disabled {
+            color: #738198;
+            background-color: rgba(22, 28, 40, 180);
+            border: 2px solid rgba(86, 99, 119, 150);
+        }
     )")));
 
     connect(enterDeployButton, &QPushButton::clicked, this, [this]() {
@@ -285,9 +350,20 @@ void ShopPage::populateShopCards()
         return;
     }
 
+    QLayoutItem *child = nullptr;
+    while ((child = shopCardsLayout->takeAt(0)) != nullptr) {
+        if (child->widget()) {
+            child->widget()->deleteLater();
+        }
+        delete child;
+    }
+
     const QVector<UnitTemplate> shopTemplates = defaultShopTemplates();
     for (int index = 0; index < shopTemplates.size(); ++index) {
-        shopCardsLayout->addWidget(createShopCard(shopTemplates.at(index), this), 0, index);
+        const UnitTemplate unitTemplate = shopTemplates.at(index);
+        const bool canBuy = currentGold >= unitTemplate.cost && ownedUnits.size() < ownedUnitCapacity;
+        const bool canSell = sellableTemplateIds.contains(unitTemplate.templateId);
+        shopCardsLayout->addWidget(createShopCard(unitTemplate, canBuy, canSell, this, this), 0, index);
     }
 }
 
@@ -295,13 +371,20 @@ void ShopPage::setGameInfo(int round,
                            int gold,
                            int currentPopulation,
                            int maxPopulation,
-                           const QVector<UnitPtr> &units)
+                           const QVector<UnitPtr> &units,
+                           int capacity,
+                           const QVector<QString> &sellableIds)
 {
+    Q_UNUSED(currentPopulation);
     roundValueLabel->setText(QString::number(round));
     goldValueLabel->setText(QString::number(gold));
-    populationValueLabel->setText(QStringLiteral("%1 / %2").arg(currentPopulation).arg(maxPopulation));
+    populationValueLabel->setText(QString::number(maxPopulation));
+    currentGold = gold;
     ownedUnits = units;
+    ownedUnitCapacity = capacity;
+    sellableTemplateIds = sellableIds;
     refreshOwnedUnits();
+    populateShopCards();
 }
 
 void ShopPage::refreshOwnedUnits()

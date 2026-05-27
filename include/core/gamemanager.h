@@ -2,6 +2,7 @@
 #define GAMEMANAGER_H
 
 #include <QObject>
+#include <QString>
 #include <QVector>
 
 #include "core/board.h"
@@ -38,6 +39,11 @@ public:
     const RoundState &roundState() const;
     bool canInteractWithBoard() const;
     QVector<UnitPtr> ownedPlayerUnits() const;
+    bool canBuyUnit(const QString &templateId) const;
+    bool buyUnit(const QString &templateId);
+    bool canSellUnit(const QString &templateId) const;
+    bool sellUnit(const QString &templateId);
+    QVector<QString> sellableUnitTemplateIds() const;
     bool canDeployUnitFromBench(int slot, const BoardPosition &target) const;
     bool deployUnitFromBench(int slot, const BoardPosition &target);
     bool canReturnUnitToBench(const BoardPosition &position) const;
@@ -64,9 +70,16 @@ public:
     int finalRound() const;
 
 private:
+    struct PurchasedUnitRecord
+    {
+        QString templateId;
+        QString unitId;
+    };
+
     void clearEnemyUnits();
     void loadCurrentEncounterFormation();
     int combatPowerForSide(ControllerSide side) const;
+    bool removePlayerUnitById(const QString &unitId);
 
     PlayerProfile m_profile;
     Board m_board;
@@ -76,6 +89,7 @@ private:
     RoundState m_roundState;
     EnemyEncounterInfo m_currentEncounterInfo;
     BattleResult m_lastBattleResult;
+    QVector<PurchasedUnitRecord> m_purchasedUnits;
 };
 
 #endif // GAMEMANAGER_H

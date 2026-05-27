@@ -38,6 +38,7 @@ private:
     void clearBoardSelection();
     void handleBoardActivation(const BoardPosition &position, Qt::MouseButton button);
     void handleBenchSlotClick(int slot);
+    void showDeployWarning(const QString &message);
     void tickBattleTimer();
 
     GameManager *gameManager;
@@ -45,6 +46,7 @@ private:
     QLabel *playerHudLabel;
     QLabel *roundHudLabel;
     QLabel *enemyHudLabel;
+    QLabel *maxPopulationHudLabel;
     QLabel *phaseTitleLabel;
     QLabel *phaseDescriptionLabel;
     QLabel *battleMetaLabel;
@@ -52,6 +54,7 @@ private:
     QLabel *selectedNameLabel;
     QLabel *selectedStatsLabel;
     QLabel *selectedTraitsLabel;
+    QLabel *deployWarningLabel;
     QPushButton *actionButton;
     QPushButton *returnShopButton;
     QTimer *battleTimer;

@@ -103,6 +103,16 @@ MainWindow::MainWindow(QWidget *parent)
         prepareMainGamePage();
         pageManager->switchTo(PageId::MainGame);
     });
+    connect(shopPage, &ShopPage::buyUnitClicked, this, [this](const QString &templateId) {
+        if (gameManager->buyUnit(templateId)) {
+            prepareShopPage();
+        }
+    });
+    connect(shopPage, &ShopPage::sellUnitClicked, this, [this](const QString &templateId) {
+        if (gameManager->sellUnit(templateId)) {
+            prepareShopPage();
+        }
+    });
 
     connect(mainGamePage, &MainGamePage::startBattleClicked, this, [this]() {
         gameManager->beginBattlePhase();
@@ -181,7 +191,9 @@ void MainWindow::prepareShopPage()
                           gameManager->playerGold(),
                           gameManager->currentPopulation(),
                           gameManager->maxPopulation(),
-                          gameManager->ownedPlayerUnits());
+                          gameManager->ownedPlayerUnits(),
+                          gameManager->board().benchCapacity(),
+                          gameManager->sellableUnitTemplateIds());
 }
 
 void MainWindow::prepareMainGamePage()

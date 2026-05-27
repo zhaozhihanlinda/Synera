@@ -2,6 +2,7 @@
 #define SHOPPAGE_H
 
 #include <QWidget>
+#include <QString>
 #include <QVector>
 
 #include "core/playerprofile.h"
@@ -23,10 +24,14 @@ public:
                      int gold,
                      int currentPopulation,
                      int maxPopulation,
-                     const QVector<UnitPtr> &ownedUnits);
+                     const QVector<UnitPtr> &ownedUnits,
+                     int ownedUnitCapacity,
+                     const QVector<QString> &sellableTemplateIds);
 
 signals:
     void enterDeployClicked();
+    void buyUnitClicked(const QString &templateId);
+    void sellUnitClicked(const QString &templateId);
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -41,6 +46,9 @@ private:
     QLabel *populationValueLabel;
     QPushButton *enterDeployButton;
     QVector<UnitPtr> ownedUnits;
+    int currentGold;
+    int ownedUnitCapacity;
+    QVector<QString> sellableTemplateIds;
     QGridLayout *ownedUnitsLayout;
     QGridLayout *shopCardsLayout;
     QFrame *unitDetailOverlay;
