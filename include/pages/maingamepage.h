@@ -6,6 +6,7 @@
 #include "core/gamemanager.h"
 
 class BenchWidget;
+class BattleInfoPanel;
 class BoardWidget;
 class QFrame;
 class QLabel;
@@ -60,9 +61,6 @@ private:
     QLabel *selectedNameLabel;
     QLabel *selectedStatsLabel;
     QLabel *selectedTraitsLabel;
-    QLabel *battleInfoNameLabel;
-    QLabel *battleInfoStatsLabel;
-    QLabel *battleInfoTraitsLabel;
     QLabel *deployWarningLabel;
     QPushButton *actionButton;
     QPushButton *returnShopButton;
@@ -72,7 +70,7 @@ private:
     QWidget *sidePanelWidget;
     QFrame *deployPanel;
     QFrame *unitInfoPanel;
-    QFrame *battleInfoPanel;
+    BattleInfoPanel *battleInfoPanel;
 };
 
 #endif // MAINGAMEPAGE_H

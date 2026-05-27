@@ -1,6 +1,7 @@
 #include "pages/maingamepage.h"
 
 #include "core/uiscale.h"
+#include "widgets/battleinfopanel.h"
 #include "widgets/benchwidget.h"
 #include "widgets/boardwidget.h"
 
@@ -62,9 +63,6 @@ MainGamePage::MainGamePage(QWidget *parent)
     , selectedNameLabel(new QLabel(QStringLiteral("未选中单位"), this))
     , selectedStatsLabel(new QLabel(QStringLiteral("点击棋盘单位以查看属性"), this))
     , selectedTraitsLabel(new QLabel(QStringLiteral("Traits: -"), this))
-    , battleInfoNameLabel(new QLabel(this))
-    , battleInfoStatsLabel(new QLabel(this))
-    , battleInfoTraitsLabel(new QLabel(this))
     , deployWarningLabel(new QLabel(this))
     , actionButton(nullptr)
     , returnShopButton(nullptr)
@@ -162,30 +160,7 @@ MainGamePage::MainGamePage(QWidget *parent)
     sidePanel->addWidget(unitInfoPanel, 1);
     battlefieldRow->addWidget(sidePanelWidget, 1);
 
-    battleInfoPanel = new QFrame(this);
-    battleInfoPanel->setObjectName("battleInfoPanel");
-    battleInfoPanel->hide();
-    auto *battleInfoLayout = new QVBoxLayout(battleInfoPanel);
-    battleInfoLayout->setContentsMargins(UiScale::margins(22, 18, 22, 18));
-    battleInfoLayout->setSpacing(UiScale::scaled(8));
-
-    auto *battleInfoHeader = new QHBoxLayout;
-    battleInfoHeader->setSpacing(UiScale::scaled(12));
-    battleInfoNameLabel->setObjectName("selectedName");
-    auto *closeBattleInfoButton = new QPushButton(QStringLiteral("X"), battleInfoPanel);
-    closeBattleInfoButton->setObjectName("closeInfoButton");
-    closeBattleInfoButton->setCursor(Qt::PointingHandCursor);
-    closeBattleInfoButton->setFixedSize(UiScale::size(40, 40));
-    battleInfoHeader->addWidget(battleInfoNameLabel, 1);
-    battleInfoHeader->addWidget(closeBattleInfoButton);
-
-    battleInfoStatsLabel->setObjectName("panelBody");
-    battleInfoStatsLabel->setWordWrap(true);
-    battleInfoTraitsLabel->setObjectName("panelCaption");
-    battleInfoTraitsLabel->setWordWrap(true);
-    battleInfoLayout->addLayout(battleInfoHeader);
-    battleInfoLayout->addWidget(battleInfoStatsLabel);
-    battleInfoLayout->addWidget(battleInfoTraitsLabel);
+    battleInfoPanel = new BattleInfoPanel(this);
 
     deployPanel = new QFrame(this);
     deployPanel->setObjectName("deployPanel");
@@ -312,7 +287,7 @@ MainGamePage::MainGamePage(QWidget *parent)
             emit returnShopClicked();
         }
     });
-    connect(closeBattleInfoButton, &QPushButton::clicked, this, [this]() {
+    connect(battleInfoPanel, &BattleInfoPanel::closeClicked, this, [this]() {
         clearBoardSelection();
         battleInfoPanel->hide();
     });
@@ -448,21 +423,7 @@ void MainGamePage::refreshSelectedUnitPanel()
     }
 
     if (isBattlePhase) {
-        battleInfoNameLabel->setText(unit->name());
-        battleInfoStatsLabel->setText(
-            QStringLiteral("HP: %1 / %2    Mana: %3 / %4    ATK: %5    Skill: %6\n%7")
-                .arg(unit->hp())
-                .arg(unit->maxHp())
-                .arg(unit->mana())
-                .arg(unit->maxMana())
-                .arg(unit->atk())
-                .arg(unit->skillName().isEmpty() ? QStringLiteral("-") : unit->skillName())
-                .arg(unit->skillDescription().isEmpty() ? QStringLiteral("-") : unit->skillDescription()));
-        battleInfoTraitsLabel->setText(QStringLiteral("Traits: %1")
-                                           .arg(unit->traits().isEmpty()
-                                                    ? QStringLiteral("-")
-                                                    : unit->traits().join(QStringLiteral(", "))));
-        battleInfoPanel->show();
+        battleInfoPanel->showUnit(unit);
         return;
     }
 
@@ -501,6 +462,7 @@ void MainGamePage::refreshBoardWidgets()
     boardWidget->setEnemyUnitsVisible(gameManager->phase() != GamePhase::Deploy);
     boardWidget->clearPendingAction();
 
+    refreshPhaseUi();
     refreshHud();
     refreshSelectedUnitPanel();
 }

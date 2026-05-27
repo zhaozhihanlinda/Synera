@@ -66,6 +66,8 @@ set(PROJECT_SOURCES
         include/core/pagemanager.h
         src/widgets/boardwidget.cpp
         include/widgets/boardwidget.h
+        src/widgets/battleinfopanel.cpp
+        include/widgets/battleinfopanel.h
         src/widgets/benchwidget.cpp
         include/widgets/benchwidget.h
         include/core/playerprofile.h
