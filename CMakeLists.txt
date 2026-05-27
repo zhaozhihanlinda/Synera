@@ -16,13 +16,46 @@ set(TS_FILES Synera_zh_CN.ts)
 
 set(PROJECT_SOURCES
         src/main.cpp
-        src/mainwindow.cpp
-        include/mainwindow.h
-        src/startpage.cpp
-        include/startpage.h
-        src/profilepage.cpp
-        include/profilepage.h
-        src/mainwindow.ui
+        src/pages/mainwindow.cpp
+        include/pages/mainwindow.h
+        src/pages/startpage.cpp
+        include/pages/startpage.h
+        src/pages/profilepage.cpp
+        include/pages/profilepage.h
+        src/pages/rulepage.cpp
+        include/pages/rulepage.h
+        src/pages/initinfopage.cpp
+        include/pages/initinfopage.h
+        src/pages/shoppage.cpp
+        include/pages/shoppage.h
+        src/pages/maingamepage.cpp
+        include/pages/maingamepage.h
+        src/pages/roundresultpage.cpp
+        include/pages/roundresultpage.h
+        src/pages/victorypage.cpp
+        include/pages/victorypage.h
+        src/pages/defeatpage.cpp
+        include/pages/defeatpage.h
+        src/core/gamemanager.cpp
+        include/core/gamemanager.h
+        src/core/board.cpp
+        include/core/board.h
+        src/core/unit.cpp
+        include/core/unit.h
+        src/core/unittemplate.cpp
+        include/core/unittemplate.h
+        src/core/playertemplatelibrary.cpp
+        include/core/playertemplatelibrary.h
+        src/core/pagemanager.cpp
+        include/core/pagemanager.h
+        src/widgets/boardwidget.cpp
+        include/widgets/boardwidget.h
+        src/widgets/benchwidget.cpp
+        include/widgets/benchwidget.h
+        include/core/playerprofile.h
+        include/core/pageid.h
+        include/core/roundstate.h
+        src/pages/mainwindow.ui
         ${TS_FILES}
 )
 

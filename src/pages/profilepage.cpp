@@ -1,4 +1,4 @@
-#include "profilepage.h"
+#include "pages/profilepage.h"
 
 #include <QDebug>
 #include <QFrame>
@@ -55,18 +55,19 @@ ProfilePage::ProfilePage(QWidget *parent)
     cardLayout->setContentsMargins(56, 48, 56, 42);
     cardLayout->setSpacing(18);
 
-    auto *titleLabel = new QLabel(QStringLiteral("指挥官身份生成"), card);
+    auto *titleLabel = new QLabel(QStringLiteral("PREPARE FOR BATTLE"), card);
     titleLabel->setObjectName("profileTitle");
     titleLabel->setAlignment(Qt::AlignCenter);
 
-    auto *subtitleLabel = new QLabel(QStringLiteral("Your commander is ready."), card);
+    auto *subtitleLabel = new QLabel(QStringLiteral("COMMANDER"), card);
     subtitleLabel->setObjectName("profileSubtitle");
     subtitleLabel->setAlignment(Qt::AlignCenter);
 
     avatarLabel = new QLabel(card);
     avatarLabel->setObjectName("avatarLabel");
     avatarLabel->setAlignment(Qt::AlignCenter);
-    avatarLabel->setFixedSize(180, 180);
+    avatarLabel->setFixedSize(108, 108);
+    avatarLabel->setText(QStringLiteral("✦"));
 
     nicknameLabel = new QLabel(card);
     nicknameLabel->setObjectName("nicknameLabel");
@@ -115,26 +116,38 @@ ProfilePage::ProfilePage(QWidget *parent)
         }
         #profileTitle {
             color: #e5d3a0;
-            font-size: 34px;
+            font-size: 40px;
             font-weight: 800;
+            letter-spacing: 2px;
         }
         #profileSubtitle {
-            color: #98a7bc;
-            font-size: 16px;
-            font-weight: 500;
+            color: #8fa4c7;
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 3px;
         }
         #avatarLabel {
-            color: #f6edda;
-            background-color: #2f3e68;
+            color: #f6e8c3;
+            background-color: qradialgradient(
+                cx: 0.5, cy: 0.45, radius: 0.75,
+                fx: 0.45, fy: 0.38,
+                stop: 0 #45597f,
+                stop: 0.5 #2c3a5b,
+                stop: 1 #172133
+            );
             border: 3px solid #d3b97b;
-            border-radius: 90px;
-            font-size: 28px;
-            font-weight: 800;
+            border-radius: 54px;
+            font-size: 34px;
+            font-weight: 900;
+            padding-bottom: 4px;
+        }
+        #avatarLabel:hover {
+            border-color: #ecd8a0;
         }
         #nicknameLabel {
             color: #f5e7c7;
-            font-size: 24px;
-            font-weight: 700;
+            font-size: 36px;
+            font-weight: 800;
         }
         #secondaryButton, #primaryButton {
             color: #ffffff;
@@ -164,7 +177,7 @@ ProfilePage::ProfilePage(QWidget *parent)
     connect(rerollButton, &QPushButton::clicked, this, &ProfilePage::randomizeProfile);
     connect(confirmButton, &QPushButton::clicked, this, [this]() {
         qDebug() << "Profile confirmed";
-        emit profileConfirmed();
+        emit confirmClicked(currentProfile);
     });
 }
 
@@ -194,8 +207,8 @@ void ProfilePage::paintEvent(QPaintEvent *event)
 
 void ProfilePage::randomizeProfile()
 {
-    currentAvatarLabel = randomAvatarLabel();
-    currentNickname = randomNickname();
+    currentProfile.avatarId = randomAvatarLabel();
+    currentProfile.nickname = randomNickname();
     refreshProfile();
 }
 
@@ -213,6 +226,115 @@ QString ProfilePage::randomNickname() const
 
 void ProfilePage::refreshProfile()
 {
-    avatarLabel->setText(currentAvatarLabel);
-    nicknameLabel->setText(QStringLiteral("昵称：%1").arg(currentNickname));
+    avatarLabel->setText(avatarSymbolForId(currentProfile.avatarId));
+    avatarLabel->setStyleSheet(avatarStyleForId(currentProfile.avatarId));
+    nicknameLabel->setText(currentProfile.nickname);
+}
+
+QString ProfilePage::avatarSymbolForId(const QString &avatarId) const
+{
+    if (avatarId.endsWith(QStringLiteral("01"))) {
+        return QStringLiteral("✦");
+    }
+    if (avatarId.endsWith(QStringLiteral("02"))) {
+        return QStringLiteral("☽");
+    }
+    if (avatarId.endsWith(QStringLiteral("03"))) {
+        return QStringLiteral("⚔");
+    }
+    if (avatarId.endsWith(QStringLiteral("04"))) {
+        return QStringLiteral("♜");
+    }
+    if (avatarId.endsWith(QStringLiteral("05"))) {
+        return QStringLiteral("✧");
+    }
+    if (avatarId.endsWith(QStringLiteral("06"))) {
+        return QStringLiteral("❖");
+    }
+    if (avatarId.endsWith(QStringLiteral("07"))) {
+        return QStringLiteral("✹");
+    }
+    return QStringLiteral("☼");
+}
+
+QString ProfilePage::avatarStyleForId(const QString &avatarId) const
+{
+    if (avatarId.endsWith(QStringLiteral("01"))) {
+        return QStringLiteral(
+            "color: #f6e7c0;"
+            "background-color: qradialgradient(cx:0.5, cy:0.42, radius:0.78, fx:0.46, fy:0.34, stop:0 #5f6990, stop:0.48 #30466b, stop:1 #162131);"
+            "border: 3px solid #d9bf7a;"
+            "border-radius: 54px;"
+            "font-size: 34px;"
+            "font-weight: 900;"
+            "padding-bottom: 4px;");
+    }
+    if (avatarId.endsWith(QStringLiteral("02"))) {
+        return QStringLiteral(
+            "color: #d9edff;"
+            "background-color: qradialgradient(cx:0.5, cy:0.4, radius:0.8, fx:0.42, fy:0.32, stop:0 #5277a0, stop:0.52 #263f67, stop:1 #121b2d);"
+            "border: 3px solid #8ab6e5;"
+            "border-radius: 54px;"
+            "font-size: 34px;"
+            "font-weight: 900;"
+            "padding-bottom: 4px;");
+    }
+    if (avatarId.endsWith(QStringLiteral("03"))) {
+        return QStringLiteral(
+            "color: #f4d6b1;"
+            "background-color: qradialgradient(cx:0.5, cy:0.45, radius:0.8, fx:0.48, fy:0.34, stop:0 #7c5960, stop:0.5 #472b3b, stop:1 #1b1421);"
+            "border: 3px solid #d4a37b;"
+            "border-radius: 54px;"
+            "font-size: 30px;"
+            "font-weight: 900;"
+            "padding-bottom: 4px;");
+    }
+    if (avatarId.endsWith(QStringLiteral("04"))) {
+        return QStringLiteral(
+            "color: #e9e0cf;"
+            "background-color: qradialgradient(cx:0.5, cy:0.43, radius:0.8, fx:0.45, fy:0.34, stop:0 #5b6774, stop:0.52 #33404f, stop:1 #151c25);"
+            "border: 3px solid #bfc9d6;"
+            "border-radius: 54px;"
+            "font-size: 30px;"
+            "font-weight: 900;"
+            "padding-bottom: 4px;");
+    }
+    if (avatarId.endsWith(QStringLiteral("05"))) {
+        return QStringLiteral(
+            "color: #f7e4c9;"
+            "background-color: qradialgradient(cx:0.5, cy:0.42, radius:0.8, fx:0.46, fy:0.34, stop:0 #71639f, stop:0.5 #3f3567, stop:1 #18142a);"
+            "border: 3px solid #cfb0f1;"
+            "border-radius: 54px;"
+            "font-size: 32px;"
+            "font-weight: 900;"
+            "padding-bottom: 4px;");
+    }
+    if (avatarId.endsWith(QStringLiteral("06"))) {
+        return QStringLiteral(
+            "color: #d8fff0;"
+            "background-color: qradialgradient(cx:0.5, cy:0.42, radius:0.8, fx:0.46, fy:0.34, stop:0 #4c7f78, stop:0.5 #27534d, stop:1 #122723);"
+            "border: 3px solid #8fd8c4;"
+            "border-radius: 54px;"
+            "font-size: 30px;"
+            "font-weight: 900;"
+            "padding-bottom: 4px;");
+    }
+    if (avatarId.endsWith(QStringLiteral("07"))) {
+        return QStringLiteral(
+            "color: #ffe3c4;"
+            "background-color: qradialgradient(cx:0.5, cy:0.42, radius:0.8, fx:0.46, fy:0.34, stop:0 #8a6f4b, stop:0.5 #5b4328, stop:1 #241a11);"
+            "border: 3px solid #e2bc79;"
+            "border-radius: 54px;"
+            "font-size: 30px;"
+            "font-weight: 900;"
+            "padding-bottom: 4px;");
+    }
+    return QStringLiteral(
+        "color: #ffe9b0;"
+        "background-color: qradialgradient(cx:0.5, cy:0.42, radius:0.8, fx:0.46, fy:0.34, stop:0 #8c7c59, stop:0.5 #55452f, stop:1 #221a12);"
+        "border: 3px solid #efcd83;"
+        "border-radius: 54px;"
+        "font-size: 30px;"
+        "font-weight: 900;"
+        "padding-bottom: 4px;");
 }

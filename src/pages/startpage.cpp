@@ -1,6 +1,7 @@
-#include "startpage.h"
+#include "pages/startpage.h"
 
 #include <QFrame>
+#include <QDebug>
 #include <QGraphicsDropShadowEffect>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -12,6 +13,7 @@
 StartPage::StartPage(QWidget *parent)
     : QWidget(parent)
     , startButton(nullptr)
+    , exitButton(nullptr)
 {
     setAttribute(Qt::WA_StyledBackground, true);
     setMinimumSize(1280, 820);
@@ -48,10 +50,20 @@ StartPage::StartPage(QWidget *parent)
     startButton->setCursor(Qt::PointingHandCursor);
     startButton->setMinimumSize(220, 64);
 
+    exitButton = new QPushButton(QStringLiteral("退出游戏"), contentCard);
+    exitButton->setObjectName("secondaryButton");
+    exitButton->setCursor(Qt::PointingHandCursor);
+    exitButton->setMinimumSize(220, 64);
+
+    auto *buttonColumn = new QVBoxLayout;
+    buttonColumn->setSpacing(14);
+    buttonColumn->addWidget(startButton, 0, Qt::AlignCenter);
+    buttonColumn->addWidget(exitButton, 0, Qt::AlignCenter);
+
     cardLayout->addWidget(titleLabel);
     cardLayout->addWidget(subtitleLabel);
     cardLayout->addSpacing(14);
-    cardLayout->addWidget(startButton, 0, Qt::AlignCenter);
+    cardLayout->addLayout(buttonColumn);
 
     auto *contentRow = new QHBoxLayout;
     contentRow->setContentsMargins(0, 0, 0, 0);
@@ -88,14 +100,16 @@ StartPage::StartPage(QWidget *parent)
             font-weight: 500;
             letter-spacing: 1px;
         }
-        #startButton {
+        #startButton, #secondaryButton {
             color: #ffffff;
-            background-color: #43548d;
-            border: 2px solid #8da6eb;
             border-radius: 22px;
             font-size: 22px;
             font-weight: 700;
             padding: 14px 28px;
+        }
+        #startButton {
+            background-color: #43548d;
+            border: 2px solid #8da6eb;
         }
         #startButton:hover {
             background-color: #5367ab;
@@ -103,6 +117,14 @@ StartPage::StartPage(QWidget *parent)
         }
         #startButton:pressed {
             background-color: #31416d;
+        }
+        #secondaryButton {
+            background-color: #28344f;
+            border: 2px solid #7082ab;
+        }
+        #secondaryButton:hover {
+            background-color: #364566;
+            border-color: #d8c083;
         }
         #startSlogan {
             color: #8391a8;
@@ -112,7 +134,11 @@ StartPage::StartPage(QWidget *parent)
         }
     )");
 
-    connect(startButton, &QPushButton::clicked, this, &StartPage::startGameClicked);
+    connect(startButton, &QPushButton::clicked, this, [this]() {
+        qDebug() << "Start game clicked";
+        emit startClicked();
+    });
+    connect(exitButton, &QPushButton::clicked, this, &StartPage::exitClicked);
 }
 
 void StartPage::paintEvent(QPaintEvent *event)

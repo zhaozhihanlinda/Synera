@@ -1,16 +1,16 @@
-#ifndef STARTPAGE_H
-#define STARTPAGE_H
+#ifndef RULEPAGE_H
+#define RULEPAGE_H
 
 #include <QWidget>
 
 class QPushButton;
 
-class StartPage : public QWidget
+class RulePage : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit StartPage(QWidget *parent = nullptr);
+    explicit RulePage(QWidget *parent = nullptr);
 
 signals:
     void startGameClicked();
@@ -22,4 +22,4 @@ private:
     QPushButton *startButton;
 };
 
-#endif // STARTPAGE_H
+#endif // RULEPAGE_H

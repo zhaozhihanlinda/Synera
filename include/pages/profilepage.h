@@ -3,6 +3,8 @@
 
 #include <QWidget>
 
+#include "core/playerprofile.h"
+
 class QLabel;
 class QPushButton;
 
@@ -14,7 +16,7 @@ public:
     explicit ProfilePage(QWidget *parent = nullptr);
 
 signals:
-    void profileConfirmed();
+    void confirmClicked(const PlayerProfile &profile);
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -23,10 +25,11 @@ private:
     void randomizeProfile();
     QString randomAvatarLabel() const;
     QString randomNickname() const;
+    QString avatarSymbolForId(const QString &avatarId) const;
+    QString avatarStyleForId(const QString &avatarId) const;
     void refreshProfile();
 
-    QString currentAvatarLabel;
-    QString currentNickname;
+    PlayerProfile currentProfile;
     QLabel *avatarLabel;
     QLabel *nicknameLabel;
     QPushButton *rerollButton;
