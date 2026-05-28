@@ -1,5 +1,58 @@
 # Synera
 
+Synera is a Qt Widgets / C++ auto-battler prototype. The current milestone is to
+keep one complete PvE game loop runnable with temporary data before expanding
+combat depth.
+
+## Build and Run
+
+From the project root:
+
+```sh
+cmake --build build
+build/Synera.app/Contents/MacOS/Synera
+```
+
+The project is configured through `CMakeLists.txt` and links against Qt
+Widgets.
+
+## Project Structure
+
+- `src/main.cpp`: application entry point.
+- `include/core`, `src/core`: game data, board rules, player state, round state,
+  enemy encounter data, and page routing helpers.
+- `include/pages`, `src/pages`: Qt pages and page-level UI flow.
+- `include/widgets`, `src/widgets`: reusable board, bench, and battle info
+  widgets.
+- `Synera_zh_CN.ts`: translation source file, currently optional.
+
+## Core Classes
+
+- `GameManager`: owns the current game state, player resources, board, round
+  state, shop buy/sell behavior, temporary battle result calculation, and
+  settlement.
+- `Board`: owns the 8 x 8 grid and 8-slot bench, including deployment-side
+  restrictions and board/bench movement.
+- `Unit` and `UnitTemplate`: represent unit runtime data and static unit design
+  data.
+- `EnemyEncounterInfo`: provides temporary fixed enemy encounter options and
+  formations.
+- `PageManager` and `MainWindow`: register pages and connect the current
+  playable flow.
+
+## Current Implemented Flow
+
+1. Start page.
+2. Profile page with randomized identity.
+3. Rule page.
+4. Initial info page.
+5. Enemy draw page.
+6. Shop or direct deployment.
+7. Main game deployment on an 8 x 8 board.
+8. Temporary battle display and auto settlement.
+9. Round result.
+10. Next round, victory page, or defeat page.
+
 ## Development Rule
 
 Current implementation priority:
