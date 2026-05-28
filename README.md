@@ -53,6 +53,31 @@ Widgets.
 9. Round result.
 10. Next round, victory page, or defeat page.
 
+## Current Rules and Data
+
+- Board: fixed 8 x 8 grid.
+- Bench: fixed 8 slots.
+- Deployment: player units can only be deployed on the player half; enemy units
+  are loaded into the enemy half by the selected encounter.
+- Rounds: one run contains 5 rounds.
+- Player HP: starts at 100 and does not recover automatically.
+- Shop: uses the current static player unit template list and deducts/refunds
+  gold through `GameManager`.
+- Enemy encounters: temporary fixed formations are grouped by round and style.
+- Battle result: currently uses placeholder power comparison based on unit
+  stats. It does not simulate movement, attacks, skill casting, or unit deaths.
+- Settlement: wins grant the current temporary round rewards; losses grant a
+  small reward and deduct round-based HP.
+
+## AI Usage
+
+AI assistance was used for planning, risk checks, documentation wording, and
+small implementation guidance. All code and document changes were reviewed in
+the local project context before being kept. The current implementation keeps
+AI-assisted work constrained to the playable-loop milestone and does not add
+future systems such as full combat AI, skill resolution, buffs, equipment,
+save/load, or event buses.
+
 ## Development Rule
 
 Current implementation priority:
