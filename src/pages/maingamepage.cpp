@@ -40,12 +40,36 @@ QFrame *createInfoTile(const QString &labelText, QLabel *valueLabel, QWidget *pa
     return tile;
 }
 
+QString unitStatsText(const UnitPtr &unit)
+{
+    if (!unit) {
+        return {};
+    }
+
+    return QStringLiteral("Cost: %1\nHP: %2 / %3\nMana: %4 / %5\nATK: %6\nRange: %7\nAS: %8\nMana Gain: %9 / %10\nSkill: %11\nSkill Detail: %12\nSide: %13\nRole: %14")
+        .arg(unit->cost())
+        .arg(unit->hp())
+        .arg(unit->maxHp())
+        .arg(unit->mana())
+        .arg(unit->maxMana())
+        .arg(unit->atk())
+        .arg(unit->range())
+        .arg(unit->attackSpeed(), 0, 'f', 1)
+        .arg(unit->manaGainOnAttack())
+        .arg(unit->manaGainOnHit())
+        .arg(unit->skillName().isEmpty() ? QStringLiteral("-") : unit->skillName())
+        .arg(unit->skillDescription().isEmpty() ? QStringLiteral("-") : unit->skillDescription())
+        .arg(unit->owner() == ControllerSide::PlayerCtrl ? QStringLiteral("Player") : QStringLiteral("Enemy"))
+        .arg(unit->roleDescription().isEmpty() ? QStringLiteral("-") : unit->roleDescription());
+}
+
 }
 
 MainGamePage::MainGamePage(QWidget *parent)
     : QWidget(parent)
     , gameManager(nullptr)
     , selectedBenchSlot(-1)
+    , inspectedDeployUnit(nullptr)
     , playerHudLabel(new QLabel(QStringLiteral("Player HP 100"), this))
     , playerHudTitleLabel(nullptr)
     , roundHudLabel(new QLabel(QStringLiteral("Round 1 - 00:00"), this))
@@ -292,6 +316,11 @@ MainGamePage::MainGamePage(QWidget *parent)
         battleInfoPanel->hide();
     });
     connect(boardWidget, &BoardWidget::selectionChanged, this, &MainGamePage::refreshSelectedUnitPanel);
+    connect(boardWidget, &BoardWidget::unitPressed, this, [this](const UnitPtr &unit) {
+        if (gameManager && gameManager->phase() == GamePhase::Deploy) {
+            showDeployUnitInfo(unit);
+        }
+    });
     connect(boardWidget, &BoardWidget::tileActivated, this, &MainGamePage::handleBoardActivation);
     connect(boardWidget, &BoardWidget::benchUnitDroppedOnTile, this, [this](int slot, const BoardPosition &position) {
         if (!gameManager) {
@@ -317,6 +346,11 @@ MainGamePage::MainGamePage(QWidget *parent)
         refreshBoardWidgets();
     });
     connect(benchWidget, &BenchWidget::slotClicked, this, &MainGamePage::handleBenchSlotClick);
+    connect(benchWidget, &BenchWidget::unitPressed, this, [this](const UnitPtr &unit) {
+        if (gameManager && gameManager->phase() == GamePhase::Deploy) {
+            showDeployUnitInfo(unit);
+        }
+    });
     connect(benchWidget, &BenchWidget::boardUnitDroppedToBench, this, [this](const BoardPosition &position, int slot) {
         if (!gameManager) {
             return;
@@ -337,6 +371,7 @@ MainGamePage::MainGamePage(QWidget *parent)
 void MainGamePage::setGameManager(GameManager *manager)
 {
     gameManager = manager;
+    inspectedDeployUnit = nullptr;
     refreshFromGameState();
 }
 
@@ -410,6 +445,11 @@ void MainGamePage::refreshPhaseUi()
 
 void MainGamePage::refreshSelectedUnitPanel()
 {
+    if (gameManager && gameManager->phase() == GamePhase::Deploy) {
+        showDeployUnitInfo(inspectedDeployUnit);
+        return;
+    }
+
     const UnitPtr unit = boardWidget->selectedUnit();
     const bool isBattlePhase = gameManager && gameManager->phase() == GamePhase::Battle;
     if (!unit) {
@@ -428,22 +468,22 @@ void MainGamePage::refreshSelectedUnitPanel()
     }
 
     selectedNameLabel->setText(unit->name());
-    selectedStatsLabel->setText(
-        QStringLiteral("Cost: %1\nHP: %2 / %3\nMana: %4 / %5\nATK: %6\nRange: %7\nAS: %8\nMana Gain: %9 / %10\nSkill: %11\nSkill Detail: %12\nSide: %13\nRole: %14")
-            .arg(unit->cost())
-            .arg(unit->hp())
-            .arg(unit->maxHp())
-            .arg(unit->mana())
-            .arg(unit->maxMana())
-            .arg(unit->atk())
-            .arg(unit->range())
-            .arg(unit->attackSpeed(), 0, 'f', 1)
-            .arg(unit->manaGainOnAttack())
-            .arg(unit->manaGainOnHit())
-            .arg(unit->skillName().isEmpty() ? QStringLiteral("-") : unit->skillName())
-            .arg(unit->skillDescription().isEmpty() ? QStringLiteral("-") : unit->skillDescription())
-            .arg(unit->owner() == ControllerSide::PlayerCtrl ? QStringLiteral("Player") : QStringLiteral("Enemy"))
-            .arg(unit->roleDescription().isEmpty() ? QStringLiteral("-") : unit->roleDescription()));
+    selectedStatsLabel->setText(unitStatsText(unit));
+    selectedTraitsLabel->clear();
+}
+
+void MainGamePage::showDeployUnitInfo(const UnitPtr &unit)
+{
+    inspectedDeployUnit = unit;
+    if (!unit) {
+        selectedNameLabel->setText(QStringLiteral("未选中单位"));
+        selectedStatsLabel->setText(QStringLiteral("按住棋盘或备战区中的单位后，这里会显示基础属性和技能说明。"));
+        selectedTraitsLabel->clear();
+        return;
+    }
+
+    selectedNameLabel->setText(unit->name());
+    selectedStatsLabel->setText(unitStatsText(unit));
     selectedTraitsLabel->clear();
 }
 
@@ -460,6 +500,7 @@ void MainGamePage::refreshBoardWidgets()
     }
 
     boardWidget->setEnemyUnitsVisible(gameManager->phase() != GamePhase::Deploy);
+    boardWidget->setBattleVisualMode(gameManager->phase() == GamePhase::Battle);
     boardWidget->clearPendingAction();
 
     refreshPhaseUi();
@@ -476,6 +517,7 @@ void MainGamePage::clearBenchSelection()
 void MainGamePage::clearBoardSelection()
 {
     boardWidget->setSelectedPosition(BoardPosition{});
+    inspectedDeployUnit = nullptr;
     refreshBoardWidgets();
 }
 

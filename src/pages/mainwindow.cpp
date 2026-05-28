@@ -21,6 +21,12 @@
 #include <QStatusBar>
 #include <QTimer>
 
+namespace {
+
+const int kBattlePlaceholderDurationMs = 5000;
+
+}
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -124,10 +130,14 @@ MainWindow::MainWindow(QWidget *parent)
     });
     connect(battleCountdownPage, &BattleCountdownPage::countdownFinished, this, [this]() {
         gameManager->beginBattlePhase();
+        const int battleRound = gameManager->currentRound();
         prepareMainGamePage();
         pageManager->switchTo(PageId::MainGame);
-        QTimer::singleShot(500, this, [this]() {
-            resolveBattleAndShowResult();
+        QTimer::singleShot(kBattlePlaceholderDurationMs, this, [this, battleRound]() {
+            if (gameManager && gameManager->phase() == GamePhase::Battle
+                && gameManager->currentRound() == battleRound) {
+                resolveBattleAndShowResult();
+            }
         });
     });
     connect(mainGamePage, &MainGamePage::returnShopClicked, this, [this]() {
@@ -219,9 +229,7 @@ void MainWindow::prepareRoundResultPage()
 
 void MainWindow::startNewSession()
 {
-    gameManager->initNewGame();
-    prepareInitInfoPage();
-    pageManager->switchTo(PageId::InitInfo);
+    pageManager->switchTo(PageId::Profile);
 }
 
 void MainWindow::resolveBattleAndShowResult()

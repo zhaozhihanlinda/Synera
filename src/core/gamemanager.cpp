@@ -6,6 +6,42 @@
 
 #include <QtGlobal>
 
+namespace {
+
+int winRewardForRound(int round)
+{
+    switch (round) {
+    case 1:
+        return 10;
+    case 2:
+        return 12;
+    case 3:
+        return 15;
+    case 4:
+        return 18;
+    default:
+        return 0;
+    }
+}
+
+int loseDamageForRound(int round)
+{
+    switch (round) {
+    case 1:
+        return 15;
+    case 2:
+        return 20;
+    case 3:
+        return 25;
+    case 4:
+        return 30;
+    default:
+        return 40;
+    }
+}
+
+}
+
 GameManager::GameManager(QObject *parent)
     : QObject(parent)
     , m_playerHp(100)
@@ -329,8 +365,8 @@ BattleResult GameManager::calculateBattleResult() const
     const int enemyPower = combatPowerForSide(ControllerSide::EnemyCtrl);
 
     result.win = playerPower >= enemyPower;
-    result.damage = result.win ? 0 : qMax(4, (enemyPower - playerPower) / 80);
-    result.rewardGold = result.win ? 8 + m_roundState.currentRound : 3;
+    result.damage = result.win ? 0 : loseDamageForRound(m_roundState.currentRound);
+    result.rewardGold = result.win ? winRewardForRound(m_roundState.currentRound) : 5;
     return result;
 }
 

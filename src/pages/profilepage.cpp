@@ -11,6 +11,7 @@
 #include <QPainter>
 #include <QPushButton>
 #include <QRandomGenerator>
+#include <QShowEvent>
 #include <QStringList>
 #include <QVBoxLayout>
 
@@ -181,6 +182,12 @@ ProfilePage::ProfilePage(QWidget *parent)
         qDebug() << "Profile confirmed";
         emit confirmClicked(currentProfile);
     });
+}
+
+void ProfilePage::showEvent(QShowEvent *event)
+{
+    QWidget::showEvent(event);
+    randomizeProfile();
 }
 
 void ProfilePage::paintEvent(QPaintEvent *event)

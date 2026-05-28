@@ -33,6 +33,7 @@ protected:
 private:
     void refreshPhaseUi();
     void refreshSelectedUnitPanel();
+    void showDeployUnitInfo(const UnitPtr &unit);
     void refreshBoardWidgets();
     void refreshHud();
     void clearBenchSelection();
@@ -44,6 +45,7 @@ private:
 
     GameManager *gameManager;
     int selectedBenchSlot;
+    UnitPtr inspectedDeployUnit;
     QLabel *playerHudLabel;
     QLabel *playerHudTitleLabel;
     QLabel *roundHudLabel;

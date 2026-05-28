@@ -19,6 +19,7 @@ public:
 
     void setBoard(Board *board);
     void setEnemyUnitsVisible(bool visible);
+    void setBattleVisualMode(bool enabled);
     void setPendingPlacementUnit(const UnitPtr &unit);
     void setPendingMoveUnit(const UnitPtr &unit, const BoardPosition &origin);
     void clearPendingAction();
@@ -28,6 +29,7 @@ public:
 
 signals:
     void selectionChanged();
+    void unitPressed(const UnitPtr &unit);
     void tileActivated(const BoardPosition &position, Qt::MouseButton button);
     void benchUnitDroppedOnTile(int slot, const BoardPosition &position);
     void boardUnitDroppedOnTile(const BoardPosition &from, const BoardPosition &to);
@@ -50,6 +52,7 @@ private:
 
     Board *m_board;
     bool m_enemyUnitsVisible;
+    bool m_battleVisualMode;
     UnitPtr m_pendingPlacementUnit;
     BoardPosition m_pendingMoveOrigin;
     BoardPosition m_hoveredPosition;

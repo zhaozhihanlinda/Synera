@@ -21,6 +21,7 @@ public:
 
 signals:
     void slotClicked(int slot);
+    void unitPressed(const UnitPtr &unit);
     void boardUnitDroppedToBench(const BoardPosition &position, int slot);
 
 protected:

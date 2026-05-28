@@ -41,6 +41,7 @@ BoardWidget::BoardWidget(QWidget *parent)
     : QWidget(parent)
     , m_board(nullptr)
     , m_enemyUnitsVisible(true)
+    , m_battleVisualMode(false)
     , m_pendingPlacementUnit(nullptr)
 {
     setMinimumSize(UiScale::size(640, 640));
@@ -73,6 +74,15 @@ void BoardWidget::setEnemyUnitsVisible(bool visible)
             emit selectionChanged();
         }
     }
+    update();
+}
+
+void BoardWidget::setBattleVisualMode(bool enabled)
+{
+    if (m_battleVisualMode == enabled) {
+        return;
+    }
+    m_battleVisualMode = enabled;
     update();
 }
 
@@ -132,20 +142,47 @@ void BoardWidget::paintEvent(QPaintEvent *event)
     painter.setRenderHint(QPainter::Antialiasing, true);
 
     const int outerInset = UiScale::scaled(8);
-    const int panelRadius = UiScale::scaled(28);
+    const int panelRadius = UiScale::scaled(m_battleVisualMode ? 34 : 28);
     const int innerInset = UiScale::scaled(8);
     const int selectedPenWidth = UiScale::scaled(3);
     const int tileRadius = UiScale::scaled(12);
-    painter.setPen(QPen(QColor(208, 183, 126, 180), UiScale::scaled(2)));
     const QRect panelRect = rect().adjusted(outerInset, outerInset, -outerInset, -outerInset);
-    painter.setBrush(QColor(9, 15, 25, 208));
+
+    if (m_battleVisualMode) {
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(QColor(0, 0, 0, 70));
+        painter.drawEllipse(panelRect.adjusted(UiScale::scaled(22), UiScale::scaled(30),
+                                               -UiScale::scaled(22), UiScale::scaled(42)));
+        painter.setBrush(QColor(46, 95, 114, 38));
+        painter.drawEllipse(panelRect.adjusted(UiScale::scaled(44), UiScale::scaled(48),
+                                               -UiScale::scaled(44), UiScale::scaled(58)));
+    }
+
+    painter.setPen(QPen(m_battleVisualMode ? QColor(221, 188, 112, 210) : QColor(208, 183, 126, 180),
+                        UiScale::scaled(2)));
+    painter.setBrush(m_battleVisualMode ? QColor(7, 10, 18, 226) : QColor(9, 15, 25, 208));
     painter.drawRoundedRect(panelRect, panelRadius, panelRadius);
 
     QLinearGradient glow(panelRect.topLeft(), panelRect.bottomRight());
-    glow.setColorAt(0.0, QColor(34, 74, 111, 70));
-    glow.setColorAt(0.5, QColor(8, 13, 21, 0));
-    glow.setColorAt(1.0, QColor(70, 36, 56, 80));
+    glow.setColorAt(0.0, m_battleVisualMode ? QColor(36, 91, 109, 105) : QColor(34, 74, 111, 70));
+    glow.setColorAt(0.5, QColor(8, 13, 21, m_battleVisualMode ? 20 : 0));
+    glow.setColorAt(1.0, m_battleVisualMode ? QColor(92, 35, 60, 110) : QColor(70, 36, 56, 80));
     painter.fillRect(panelRect.adjusted(innerInset, innerInset, -innerInset, -innerInset), glow);
+
+    if (m_battleVisualMode) {
+        painter.setBrush(Qt::NoBrush);
+        painter.setPen(QPen(QColor(116, 225, 219, 28), UiScale::scaled(2)));
+        painter.drawEllipse(panelRect.adjusted(UiScale::scaled(70), UiScale::scaled(74),
+                                               -UiScale::scaled(70), -UiScale::scaled(74)));
+        painter.setPen(QPen(QColor(197, 92, 135, 24), UiScale::scaled(2)));
+        painter.drawEllipse(panelRect.adjusted(UiScale::scaled(112), UiScale::scaled(110),
+                                               -UiScale::scaled(112), -UiScale::scaled(110)));
+        painter.setPen(QPen(QColor(232, 203, 137, 22), 1));
+        painter.drawLine(panelRect.left() + UiScale::scaled(80), panelRect.top() + UiScale::scaled(62),
+                         panelRect.right() - UiScale::scaled(80), panelRect.bottom() - UiScale::scaled(62));
+        painter.drawLine(panelRect.right() - UiScale::scaled(80), panelRect.top() + UiScale::scaled(62),
+                         panelRect.left() + UiScale::scaled(80), panelRect.bottom() - UiScale::scaled(62));
+    }
 
     if (!m_board) {
         painter.setPen(QColor("#d8deed"));
@@ -158,11 +195,11 @@ void BoardWidget::paintEvent(QPaintEvent *event)
             const QRect tileRect = cellRect(row, col);
             const BoardPosition tilePosition{row, col};
             QColor fillColor = m_board->isEnemyHalf(row, col)
-                ? QColor(57, 24, 39, 190)
-                : QColor(24, 55, 68, 190);
+                ? QColor(57, 24, 39, m_battleVisualMode ? 214 : 190)
+                : QColor(24, 55, 68, m_battleVisualMode ? 214 : 190);
             QColor strokeColor = m_board->isEnemyHalf(row, col)
-                ? QColor(146, 90, 98, 120)
-                : QColor(103, 157, 164, 120);
+                ? QColor(146, 90, 98, m_battleVisualMode ? 160 : 120)
+                : QColor(103, 157, 164, m_battleVisualMode ? 160 : 120);
             bool illegalDropTarget = false;
 
             if (m_hoveredPosition == tilePosition) {
@@ -191,6 +228,39 @@ void BoardWidget::paintEvent(QPaintEvent *event)
             painter.setPen(QPen(strokeColor, m_selectedPosition == tilePosition ? selectedPenWidth : UiScale::scaled(2)));
             painter.setBrush(fillColor);
             painter.drawRoundedRect(tileRect, tileRadius, tileRadius);
+
+            if (m_battleVisualMode) {
+                QLinearGradient tileGlow(tileRect.topLeft(), tileRect.bottomRight());
+                tileGlow.setColorAt(0.0, QColor(255, 255, 255, 20));
+                tileGlow.setColorAt(0.55, QColor(10, 13, 20, 0));
+                tileGlow.setColorAt(1.0, m_board->isEnemyHalf(row, col)
+                    ? QColor(172, 61, 91, 34)
+                    : QColor(78, 204, 195, 34));
+                painter.fillRect(tileRect.adjusted(UiScale::scaled(3), UiScale::scaled(3),
+                                                   -UiScale::scaled(3), -UiScale::scaled(3)), tileGlow);
+
+                painter.setPen(QPen(QColor(226, 204, 148, 30), 1));
+                painter.drawLine(tileRect.left() + UiScale::scaled(10), tileRect.top() + UiScale::scaled(15),
+                                 tileRect.left() + UiScale::scaled(28), tileRect.top() + UiScale::scaled(10));
+                painter.drawLine(tileRect.right() - UiScale::scaled(13), tileRect.bottom() - UiScale::scaled(14),
+                                 tileRect.right() - UiScale::scaled(32), tileRect.bottom() - UiScale::scaled(8));
+                painter.setPen(QPen(m_board->isEnemyHalf(row, col)
+                                        ? QColor(228, 91, 119, 34)
+                                        : QColor(92, 227, 213, 34),
+                                    1));
+                painter.drawLine(tileRect.center().x() - UiScale::scaled(12), tileRect.center().y(),
+                                 tileRect.center().x() + UiScale::scaled(12), tileRect.center().y());
+            }
+
+            if (m_battleVisualMode && m_selectedPosition == tilePosition) {
+                painter.setBrush(Qt::NoBrush);
+                painter.setPen(QPen(QColor(244, 215, 150, 118), UiScale::scaled(2)));
+                painter.drawEllipse(tileRect.adjusted(UiScale::scaled(15), UiScale::scaled(15),
+                                                      -UiScale::scaled(15), -UiScale::scaled(15)));
+                painter.setPen(QPen(QColor(127, 232, 221, 84), 1));
+                painter.drawEllipse(tileRect.adjusted(UiScale::scaled(23), UiScale::scaled(23),
+                                                      -UiScale::scaled(23), -UiScale::scaled(23)));
+            }
 
             if (illegalDropTarget) {
                 const int illegalInset = UiScale::scaled(3);
@@ -223,8 +293,20 @@ void BoardWidget::paintEvent(QPaintEvent *event)
     const QRect upper = cellRect(3, 0);
     const QRect lower = cellRect(4, 0);
     const int y = (upper.bottom() + lower.top()) / 2;
-    painter.setPen(QPen(QColor("#7b7aff"), UiScale::scaled(2)));
-    painter.drawLine(panelRect.left() + UiScale::scaled(34), y, panelRect.right() - UiScale::scaled(34), y);
+    if (m_battleVisualMode) {
+        painter.setPen(QPen(QColor(68, 218, 214, 92), UiScale::scaled(5)));
+        painter.drawLine(panelRect.left() + UiScale::scaled(38), y, panelRect.right() - UiScale::scaled(38), y);
+        painter.setPen(QPen(QColor(169, 92, 230, 150), UiScale::scaled(2)));
+        painter.drawLine(panelRect.left() + UiScale::scaled(46), y, panelRect.right() - UiScale::scaled(46), y);
+        painter.setPen(QPen(QColor(232, 203, 137, 80), 1));
+        painter.drawLine(panelRect.left() + UiScale::scaled(70), y - UiScale::scaled(7),
+                         panelRect.right() - UiScale::scaled(70), y - UiScale::scaled(7));
+        painter.drawLine(panelRect.left() + UiScale::scaled(70), y + UiScale::scaled(7),
+                         panelRect.right() - UiScale::scaled(70), y + UiScale::scaled(7));
+    } else {
+        painter.setPen(QPen(QColor("#7b7aff"), UiScale::scaled(2)));
+        painter.drawLine(panelRect.left() + UiScale::scaled(34), y, panelRect.right() - UiScale::scaled(34), y);
+    }
 }
 
 void BoardWidget::mouseMoveEvent(QMouseEvent *event)
@@ -294,8 +376,10 @@ void BoardWidget::mousePressEvent(QMouseEvent *event)
         && (pressedUnit->owner() != ControllerSide::EnemyCtrl || m_enemyUnitsVisible);
     if (event->button() == Qt::LeftButton && canSelectPressedUnit && !m_pendingPlacementUnit) {
         m_selectedPosition = pos;
+        emit unitPressed(pressedUnit);
     } else if (event->button() == Qt::LeftButton && !m_pendingPlacementUnit) {
         m_selectedPosition = BoardPosition{};
+        emit unitPressed(nullptr);
     }
     if (event->button() == Qt::LeftButton) {
         emit selectionChanged();
@@ -415,9 +499,37 @@ void BoardWidget::drawUnit(QPainter &painter, const QRect &rect, const UnitPtr &
     const QRect manaBarRect(rect.left() + UiScale::scaled(10), rect.bottom() - UiScale::scaled(10),
                             rect.width() - UiScale::scaled(20), UiScale::scaled(4));
 
+    if (m_battleVisualMode) {
+        const QColor sideGlow = unit->owner() == ControllerSide::PlayerCtrl
+            ? QColor(74, 218, 211, 86)
+            : QColor(213, 73, 105, 86);
+        const QRect baseRect(rect.left() + UiScale::scaled(7), rect.bottom() - UiScale::scaled(28),
+                             rect.width() - UiScale::scaled(14), UiScale::scaled(17));
+        painter.setPen(QPen(sideGlow, UiScale::scaled(2)));
+        painter.setBrush(QColor(sideGlow.red(), sideGlow.green(), sideGlow.blue(), 30));
+        painter.drawEllipse(baseRect);
+        painter.setPen(QPen(QColor(232, 203, 137, 62), 1));
+        painter.drawEllipse(baseRect.adjusted(UiScale::scaled(8), UiScale::scaled(3),
+                                              -UiScale::scaled(8), -UiScale::scaled(3)));
+    }
+
     painter.setPen(QPen(borderColorForSide(unit->owner()), UiScale::scaled(2)));
     painter.setBrush(fillColorForSide(unit->owner()));
     painter.drawRoundedRect(avatarRect, UiScale::scaled(14), UiScale::scaled(14));
+
+    if (m_battleVisualMode) {
+        QLinearGradient avatarGlow(avatarRect.topLeft(), avatarRect.bottomRight());
+        avatarGlow.setColorAt(0.0, QColor(255, 255, 255, 30));
+        avatarGlow.setColorAt(0.55, QColor(0, 0, 0, 0));
+        avatarGlow.setColorAt(1.0, unit->owner() == ControllerSide::PlayerCtrl
+            ? QColor(74, 218, 211, 42)
+            : QColor(213, 73, 105, 42));
+        painter.fillRect(avatarRect.adjusted(UiScale::scaled(3), UiScale::scaled(3),
+                                             -UiScale::scaled(3), -UiScale::scaled(3)), avatarGlow);
+        painter.setPen(QPen(QColor(232, 203, 137, 56), 1));
+        painter.drawLine(avatarRect.left() + UiScale::scaled(10), avatarRect.top() + UiScale::scaled(8),
+                         avatarRect.right() - UiScale::scaled(10), avatarRect.top() + UiScale::scaled(8));
+    }
 
     painter.setPen(QColor("#f8f4eb"));
     painter.setFont(QFont(QStringLiteral("Helvetica"), std::max(UiScale::scaled(12), avatarRect.width() / 4), QFont::Bold));

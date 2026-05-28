@@ -91,7 +91,10 @@ void BenchWidget::mousePressEvent(QMouseEvent *event)
     m_dragStartPos = event->pos();
     m_pressedSlot = slotAt(event->pos());
     if (m_pressedSlot >= 0) {
+        emit unitPressed(m_board->benchUnitAt(m_pressedSlot));
         emit slotClicked(m_pressedSlot);
+    } else {
+        emit unitPressed(nullptr);
     }
 
     QWidget::mousePressEvent(event);
