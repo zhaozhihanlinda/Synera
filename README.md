@@ -128,20 +128,6 @@ The current player unit templates may already contain static fields for:
 
 These fields are intentionally reserved so the design data is not lost, but they do not enable any gameplay systems yet.
 
-## Current Placeholder Flow
-
-The current build focuses on a complete playable loop with temporary data:
-
-1. Start page -> profile page -> rule page -> initial info page.
-2. Each round draws one temporary enemy encounter.
-3. The player may enter the shop or go directly to deployment.
-4. Deployment uses the 8 x 8 board and the bench.
-5. Battle currently stays on the battle page briefly, then resolves through placeholder power comparison.
-6. Round result applies temporary win rewards and lose damage.
-7. The game advances to the next round, victory page, or defeat page.
-
-The battle placeholder does not implement real movement, attacks, skill casting, or death-by-combat yet. It only keeps the full game flow runnable.
-
 Not implemented yet:
 
 - skill casting behavior or skill resolution
