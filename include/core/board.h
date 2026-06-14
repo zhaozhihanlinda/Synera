@@ -32,10 +32,12 @@ public:
 
     bool canPlaceUnit(const UnitPtr &unit, int row, int col) const;
     bool canMoveUnit(int fromRow, int fromCol, int toRow, int toCol) const;
+    bool canMoveUnitDuringBattle(int fromRow, int fromCol, int toRow, int toCol) const;
     bool canSwapUnits(int firstRow, int firstCol, int secondRow, int secondCol) const;
     bool placeUnit(const UnitPtr &unit, int row, int col);
     UnitPtr removeUnit(int row, int col);
     bool moveUnit(int fromRow, int fromCol, int toRow, int toCol);
+    bool moveUnitDuringBattle(int fromRow, int fromCol, int toRow, int toCol);
     bool swapUnits(int firstRow, int firstCol, int secondRow, int secondCol);
     bool relocateOrSwapUnit(int fromRow, int fromCol, int toRow, int toCol);
 

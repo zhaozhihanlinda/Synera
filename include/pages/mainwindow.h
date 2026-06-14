@@ -8,7 +8,6 @@ class GameManager;
 class PageManager;
 class StartPage;
 class ProfilePage;
-class RulePage;
 class InitInfoPage;
 class DrawPage;
 class ShopPage;
@@ -17,6 +16,7 @@ class MainGamePage;
 class RoundResultPage;
 class VictoryPage;
 class DefeatPage;
+class QTimer;
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -39,7 +39,6 @@ private:
     PageManager *pageManager;
     StartPage *startPage;
     ProfilePage *profilePage;
-    RulePage *rulePage;
     InitInfoPage *initInfoPage;
     DrawPage *drawPage;
     ShopPage *shopPage;
@@ -48,6 +47,8 @@ private:
     RoundResultPage *roundResultPage;
     VictoryPage *victoryPage;
     DefeatPage *defeatPage;
+    QTimer *battleSimulationTimer;
+    int activeBattleRound;
 
     void prepareInitInfoPage();
     void prepareDrawPage();
@@ -55,6 +56,7 @@ private:
     void prepareMainGamePage();
     void prepareRoundResultPage();
     void startNewSession();
+    void tickBattleSimulation();
     void resolveBattleAndShowResult();
 };
 

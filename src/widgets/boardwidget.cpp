@@ -15,7 +15,6 @@
 namespace {
 
 const int kBoardPadding = UiScale::scaled(24);
-const int kMidGap = UiScale::scaled(16);
 const int kCellGap = UiScale::scaled(6);
 const char kBenchDragMime[] = "application/x-synera-bench-slot";
 const char kBoardDragMime[] = "application/x-synera-board-pos";
@@ -290,23 +289,6 @@ void BoardWidget::paintEvent(QPaintEvent *event)
         }
     }
 
-    const QRect upper = cellRect(3, 0);
-    const QRect lower = cellRect(4, 0);
-    const int y = (upper.bottom() + lower.top()) / 2;
-    if (m_battleVisualMode) {
-        painter.setPen(QPen(QColor(68, 218, 214, 92), UiScale::scaled(5)));
-        painter.drawLine(panelRect.left() + UiScale::scaled(38), y, panelRect.right() - UiScale::scaled(38), y);
-        painter.setPen(QPen(QColor(169, 92, 230, 150), UiScale::scaled(2)));
-        painter.drawLine(panelRect.left() + UiScale::scaled(46), y, panelRect.right() - UiScale::scaled(46), y);
-        painter.setPen(QPen(QColor(232, 203, 137, 80), 1));
-        painter.drawLine(panelRect.left() + UiScale::scaled(70), y - UiScale::scaled(7),
-                         panelRect.right() - UiScale::scaled(70), y - UiScale::scaled(7));
-        painter.drawLine(panelRect.left() + UiScale::scaled(70), y + UiScale::scaled(7),
-                         panelRect.right() - UiScale::scaled(70), y + UiScale::scaled(7));
-    } else {
-        painter.setPen(QPen(QColor("#7b7aff"), UiScale::scaled(2)));
-        painter.drawLine(panelRect.left() + UiScale::scaled(34), y, panelRect.right() - UiScale::scaled(34), y);
-    }
 }
 
 void BoardWidget::mouseMoveEvent(QMouseEvent *event)
@@ -458,21 +440,19 @@ QRect BoardWidget::cellRect(int row, int col) const
 
     const QRect contentRect = rect().adjusted(kBoardPadding, kBoardPadding, -kBoardPadding, -kBoardPadding);
     const int totalGapWidth = (m_board->columnCount() - 1) * kCellGap;
-    const int totalGapHeight = (m_board->rowCount() - 1) * kCellGap + kMidGap;
+    const int totalGapHeight = (m_board->rowCount() - 1) * kCellGap;
     const int cellSize = std::min((contentRect.width() - totalGapWidth) / m_board->columnCount(),
                                   (contentRect.height() - totalGapHeight) / m_board->rowCount());
 
     const int boardWidth = cellSize * m_board->columnCount() + totalGapWidth;
-    const int boardHeight = cellSize * m_board->rowCount() + (m_board->rowCount() - 1) * kCellGap + kMidGap;
+    const int boardHeight = cellSize * m_board->rowCount() + (m_board->rowCount() - 1) * kCellGap;
     const int startX = contentRect.center().x() - boardWidth / 2;
     const int startY = contentRect.center().y() - boardHeight / 2;
 
-    int y = startY + row * (cellSize + kCellGap);
-    if (row >= m_board->rowCount() / 2) {
-        y += kMidGap;
-    }
-
-    return QRect(startX + col * (cellSize + kCellGap), y, cellSize, cellSize);
+    return QRect(startX + col * (cellSize + kCellGap),
+                 startY + row * (cellSize + kCellGap),
+                 cellSize,
+                 cellSize);
 }
 
 BoardPosition BoardWidget::boardPositionAt(const QPoint &point) const

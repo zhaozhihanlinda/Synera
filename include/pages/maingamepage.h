@@ -41,6 +41,7 @@ private:
     void handleBoardActivation(const BoardPosition &position, Qt::MouseButton button);
     void handleBenchSlotClick(int slot);
     void showDeployWarning(const QString &message);
+    QString deployFailureMessageForBench(int slot, const BoardPosition &position) const;
     void tickBattleTimer();
 
     GameManager *gameManager;
@@ -58,6 +59,7 @@ private:
     QWidget *headerButtonPanel;
     QLabel *phaseTitleLabel;
     QLabel *phaseDescriptionLabel;
+    QLabel *deployRuleLabel;
     QLabel *battleMetaLabel;
     QLabel *resourceInfoLabel;
     QLabel *selectedNameLabel;

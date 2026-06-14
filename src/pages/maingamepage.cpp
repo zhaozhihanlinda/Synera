@@ -82,6 +82,7 @@ MainGamePage::MainGamePage(QWidget *parent)
     , headerButtonPanel(nullptr)
     , phaseTitleLabel(new QLabel(this))
     , phaseDescriptionLabel(new QLabel(this))
+    , deployRuleLabel(new QLabel(this))
     , battleMetaLabel(new QLabel(QStringLiteral("Player Units 0 | Enemy Units 0"), this))
     , resourceInfoLabel(new QLabel(QStringLiteral("Gold 30 | Population 0 / 3"), this))
     , selectedNameLabel(new QLabel(QStringLiteral("未选中单位"), this))
@@ -143,11 +144,14 @@ MainGamePage::MainGamePage(QWidget *parent)
     phaseTitleLabel->setObjectName("phaseTitle");
     phaseDescriptionLabel->setObjectName("phaseBody");
     phaseDescriptionLabel->setWordWrap(true);
+    deployRuleLabel->setObjectName("deployRule");
+    deployRuleLabel->setWordWrap(true);
     battleMetaLabel->hide();
     resourceInfoLabel->hide();
 
     phaseLayout->addWidget(phaseTitleLabel);
     phaseLayout->addWidget(phaseDescriptionLabel);
+    phaseLayout->addWidget(deployRuleLabel);
     phaseLayout->addStretch(1);
 
     boardWidget = new BoardWidget(this);
@@ -240,6 +244,12 @@ MainGamePage::MainGamePage(QWidget *parent)
             font-size: 20px;
             font-weight: 500;
         }
+        #deployRule {
+            color: #9fc8df;
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1.35em;
+        }
         #panelTitle {
             color: #e2cb92;
             font-size: 22px;
@@ -329,11 +339,8 @@ MainGamePage::MainGamePage(QWidget *parent)
         if (gameManager->deployUnitFromBench(slot, position)) {
             clearBenchSelection();
         } else {
-            if (gameManager->board().benchUnitAt(slot)
-                && gameManager->currentPopulation() >= gameManager->maxPopulation()) {
-                showDeployWarning(QStringLiteral("已达到最大人口"));
-            }
             refreshBoardWidgets();
+            showDeployWarning(deployFailureMessageForBench(slot, position));
         }
     });
     connect(boardWidget, &BoardWidget::boardUnitDroppedOnTile, this, [this](const BoardPosition &from, const BoardPosition &to) {
@@ -394,6 +401,7 @@ void MainGamePage::refreshFromGameState()
 void MainGamePage::refreshPhaseUi()
 {
     const RoundState state = gameManager ? gameManager->roundState() : RoundState{};
+    const EnemyEncounterInfo encounter = gameManager ? gameManager->currentEncounterInfo() : EnemyEncounterInfo{};
 
     if (state.phase == GamePhase::Deploy) {
         if (playerHudTitleLabel) {
@@ -410,12 +418,33 @@ void MainGamePage::refreshPhaseUi()
         sidePanelWidget->show();
         battleInfoPanel->hide();
         phaseTitleLabel->setText(QStringLiteral("当前阶段：部署阶段"));
-        phaseDescriptionLabel->setText(QStringLiteral("部署阶段用于从备战区拖动我方单位上场，并调整我方站位。"));
+        const int currentPopulation = gameManager ? gameManager->currentPopulation() : 0;
+        const int maxPopulation = gameManager ? gameManager->maxPopulation() : 3;
+        const QString styleText = encounter.styleLabel.isEmpty() ? QStringLiteral("未知") : encounter.styleLabel;
+        const QString hintText = encounter.styleDescription.isEmpty()
+            ? QStringLiteral("根据敌军风格调整前排、后排和功能单位的位置。")
+            : encounter.styleDescription;
+        phaseDescriptionLabel->setText(
+            QStringLiteral("本轮最多上场 %1 个单位，当前已上场 %2 / %1。敌军风格：%3。")
+                .arg(maxPopulation)
+                .arg(currentPopulation)
+                .arg(styleText));
+        deployRuleLabel->setText(
+            QStringLiteral("规则：只能部署在下半区的我方区域；敌方上半区不可部署。人口满时需要先撤回或出售单位。\n提示：%1")
+                .arg(hintText));
+        deployRuleLabel->show();
         actionButton->setText(QStringLiteral("开始战斗"));
         actionButton->setEnabled(gameManager && gameManager->currentPopulation() > 0);
+        actionButton->setCursor(actionButton->isEnabled() ? Qt::PointingHandCursor : Qt::ForbiddenCursor);
         actionButton->show();
         returnShopButton->show();
         deployPanel->show();
+        if (gameManager && gameManager->currentPopulation() == 0) {
+            deployWarningLabel->setText(QStringLiteral("至少部署 1 个单位后才能开始战斗。"));
+            deployWarningLabel->show();
+        } else if (deployWarningLabel->text() == QStringLiteral("至少部署 1 个单位后才能开始战斗。")) {
+            deployWarningLabel->hide();
+        }
         battleTimer->stop();
     } else {
         if (playerHudTitleLabel) {
@@ -430,6 +459,7 @@ void MainGamePage::refreshPhaseUi()
         maxPopulationHudTile->hide();
         headerButtonPanel->hide();
         sidePanelWidget->hide();
+        deployRuleLabel->hide();
         phaseTitleLabel->setText(QStringLiteral("当前阶段：战斗阶段"));
         phaseDescriptionLabel->setText(QStringLiteral("战斗阶段会根据当前双方阵容进行结算。"));
         actionButton->setText(QStringLiteral("战斗进行中"));
@@ -489,7 +519,7 @@ void MainGamePage::showDeployUnitInfo(const UnitPtr &unit)
 
 void MainGamePage::refreshBoardWidgets()
 {
-    benchWidget->setSelectedSlot(-1);
+    benchWidget->setSelectedSlot(selectedBenchSlot);
 
     if (!gameManager) {
         boardWidget->setEnemyUnitsVisible(true);
@@ -502,6 +532,9 @@ void MainGamePage::refreshBoardWidgets()
     boardWidget->setEnemyUnitsVisible(gameManager->phase() != GamePhase::Deploy);
     boardWidget->setBattleVisualMode(gameManager->phase() == GamePhase::Battle);
     boardWidget->clearPendingAction();
+    if (gameManager->phase() == GamePhase::Deploy && selectedBenchSlot >= 0) {
+        boardWidget->setPendingPlacementUnit(gameManager->board().benchUnitAt(selectedBenchSlot));
+    }
 
     refreshPhaseUi();
     refreshHud();
@@ -523,15 +556,34 @@ void MainGamePage::clearBoardSelection()
 
 void MainGamePage::handleBoardActivation(const BoardPosition &position, Qt::MouseButton button)
 {
-    Q_UNUSED(position);
-    Q_UNUSED(button);
+    if (!gameManager || gameManager->phase() != GamePhase::Deploy || button != Qt::LeftButton) {
+        refreshBoardWidgets();
+        return;
+    }
+
+    if (selectedBenchSlot >= 0) {
+        if (gameManager->deployUnitFromBench(selectedBenchSlot, position)) {
+            clearBenchSelection();
+            return;
+        }
+        refreshBoardWidgets();
+        showDeployWarning(deployFailureMessageForBench(selectedBenchSlot, position));
+        return;
+    }
+
     refreshBoardWidgets();
 }
 
 void MainGamePage::handleBenchSlotClick(int slot)
 {
-    Q_UNUSED(slot);
-    selectedBenchSlot = -1;
+    if (!gameManager || gameManager->phase() != GamePhase::Deploy
+        || !gameManager->board().benchUnitAt(slot)) {
+        selectedBenchSlot = -1;
+        inspectedDeployUnit = nullptr;
+    } else {
+        selectedBenchSlot = slot;
+        inspectedDeployUnit = gameManager->board().benchUnitAt(slot);
+    }
     refreshBoardWidgets();
 }
 
@@ -544,6 +596,33 @@ void MainGamePage::showDeployWarning(const QString &message)
             deployWarningLabel->hide();
         }
     });
+}
+
+QString MainGamePage::deployFailureMessageForBench(int slot, const BoardPosition &position) const
+{
+    if (!gameManager) {
+        return QStringLiteral("当前无法部署。");
+    }
+
+    const UnitPtr unit = gameManager->board().benchUnitAt(slot);
+    if (!unit) {
+        return QStringLiteral("该备战区槽位没有可部署单位。");
+    }
+    if (!position.isValid() || !gameManager->board().isInside(position.row, position.col)) {
+        return QStringLiteral("请选择棋盘内的我方部署格。");
+    }
+    if (!gameManager->board().isPlayerHalf(position.row, position.col)) {
+        return QStringLiteral("只能部署在下半区的我方区域。");
+    }
+    if (gameManager->board().isOccupied(position.row, position.col)) {
+        return QStringLiteral("目标格已有单位，请选择空格。");
+    }
+    if (gameManager->currentPopulation() >= gameManager->maxPopulation()) {
+        return QStringLiteral("人口已满：%1 / %2。")
+            .arg(gameManager->currentPopulation())
+            .arg(gameManager->maxPopulation());
+    }
+    return QStringLiteral("当前无法部署到该格。");
 }
 
 void MainGamePage::refreshHud()

@@ -1,5 +1,6 @@
 #include "pages/profilepage.h"
 
+#include "core/playeravatar.h"
 #include "core/uiscale.h"
 
 #include <QDebug>
@@ -17,21 +18,28 @@
 
 namespace {
 
-const QStringList kNicknames = {
-    QStringLiteral("星火旅人"),
-    QStringLiteral("银月指挥官"),
-    QStringLiteral("暮光棋手"),
-    QStringLiteral("钢铁先知"),
-    QStringLiteral("棋盘术士"),
-    QStringLiteral("烈焰统帅"),
-    QStringLiteral("晨曦守卫"),
-    QStringLiteral("影刃领主")
+struct ProfileOption
+{
+    QString nickname;
+    QString avatarId;
+};
+
+const QList<ProfileOption> kProfileOptions = {
+    {QStringLiteral("星火旅人"), QStringLiteral("Avatar 01")},
+    {QStringLiteral("银月指挥官"), QStringLiteral("Avatar 02")},
+    {QStringLiteral("暮光棋手"), QStringLiteral("Avatar 03")},
+    {QStringLiteral("钢铁先知"), QStringLiteral("Avatar 04")},
+    {QStringLiteral("棋盘术士"), QStringLiteral("Avatar 05")},
+    {QStringLiteral("烈焰统帅"), QStringLiteral("Avatar 06")},
+    {QStringLiteral("晨曦守卫"), QStringLiteral("Avatar 07")},
+    {QStringLiteral("影刃领主"), QStringLiteral("Avatar 08")}
 };
 
 }
 
 ProfilePage::ProfilePage(QWidget *parent)
     : QWidget(parent)
+    , lastProfileIndex(-1)
     , avatarLabel(nullptr)
     , nicknameLabel(nullptr)
     , rerollButton(nullptr)
@@ -216,134 +224,21 @@ void ProfilePage::paintEvent(QPaintEvent *event)
 
 void ProfilePage::randomizeProfile()
 {
-    currentProfile.avatarId = randomAvatarLabel();
-    currentProfile.nickname = randomNickname();
+    int index = QRandomGenerator::global()->bounded(kProfileOptions.size());
+    if (kProfileOptions.size() > 1 && index == lastProfileIndex) {
+        index = (index + 1 + QRandomGenerator::global()->bounded(kProfileOptions.size() - 1))
+            % kProfileOptions.size();
+    }
+
+    lastProfileIndex = index;
+    currentProfile.nickname = kProfileOptions[index].nickname;
+    currentProfile.avatarId = kProfileOptions[index].avatarId;
     refreshProfile();
-}
-
-QString ProfilePage::randomAvatarLabel() const
-{
-    const int avatarNumber = QRandomGenerator::global()->bounded(1, 9);
-    return QStringLiteral("Avatar %1").arg(avatarNumber, 2, 10, QChar('0'));
-}
-
-QString ProfilePage::randomNickname() const
-{
-    const int index = QRandomGenerator::global()->bounded(kNicknames.size());
-    return kNicknames[index];
 }
 
 void ProfilePage::refreshProfile()
 {
-    avatarLabel->setText(avatarSymbolForId(currentProfile.avatarId));
-    avatarLabel->setStyleSheet(avatarStyleForId(currentProfile.avatarId));
+    avatarLabel->setText(playerAvatarSymbolForId(currentProfile.avatarId));
+    avatarLabel->setStyleSheet(playerAvatarStyleForId(currentProfile.avatarId, 54));
     nicknameLabel->setText(currentProfile.nickname);
-}
-
-QString ProfilePage::avatarSymbolForId(const QString &avatarId) const
-{
-    if (avatarId.endsWith(QStringLiteral("01"))) {
-        return QStringLiteral("✦");
-    }
-    if (avatarId.endsWith(QStringLiteral("02"))) {
-        return QStringLiteral("☽");
-    }
-    if (avatarId.endsWith(QStringLiteral("03"))) {
-        return QStringLiteral("⚔");
-    }
-    if (avatarId.endsWith(QStringLiteral("04"))) {
-        return QStringLiteral("♜");
-    }
-    if (avatarId.endsWith(QStringLiteral("05"))) {
-        return QStringLiteral("✧");
-    }
-    if (avatarId.endsWith(QStringLiteral("06"))) {
-        return QStringLiteral("❖");
-    }
-    if (avatarId.endsWith(QStringLiteral("07"))) {
-        return QStringLiteral("✹");
-    }
-    return QStringLiteral("☼");
-}
-
-QString ProfilePage::avatarStyleForId(const QString &avatarId) const
-{
-    if (avatarId.endsWith(QStringLiteral("01"))) {
-        return UiScale::scaleStyleSheet(QStringLiteral(
-            "color: #f6e7c0;"
-            "background-color: qradialgradient(cx:0.5, cy:0.42, radius:0.78, fx:0.46, fy:0.34, stop:0 #5f6990, stop:0.48 #30466b, stop:1 #162131);"
-            "border: 3px solid #d9bf7a;"
-            "border-radius: 54px;"
-            "font-size: 34px;"
-            "font-weight: 900;"
-            "padding-bottom: 4px;"));
-    }
-    if (avatarId.endsWith(QStringLiteral("02"))) {
-        return UiScale::scaleStyleSheet(QStringLiteral(
-            "color: #d9edff;"
-            "background-color: qradialgradient(cx:0.5, cy:0.4, radius:0.8, fx:0.42, fy:0.32, stop:0 #5277a0, stop:0.52 #263f67, stop:1 #121b2d);"
-            "border: 3px solid #8ab6e5;"
-            "border-radius: 54px;"
-            "font-size: 34px;"
-            "font-weight: 900;"
-            "padding-bottom: 4px;"));
-    }
-    if (avatarId.endsWith(QStringLiteral("03"))) {
-        return UiScale::scaleStyleSheet(QStringLiteral(
-            "color: #f4d6b1;"
-            "background-color: qradialgradient(cx:0.5, cy:0.45, radius:0.8, fx:0.48, fy:0.34, stop:0 #7c5960, stop:0.5 #472b3b, stop:1 #1b1421);"
-            "border: 3px solid #d4a37b;"
-            "border-radius: 54px;"
-            "font-size: 30px;"
-            "font-weight: 900;"
-            "padding-bottom: 4px;"));
-    }
-    if (avatarId.endsWith(QStringLiteral("04"))) {
-        return UiScale::scaleStyleSheet(QStringLiteral(
-            "color: #e9e0cf;"
-            "background-color: qradialgradient(cx:0.5, cy:0.43, radius:0.8, fx:0.45, fy:0.34, stop:0 #5b6774, stop:0.52 #33404f, stop:1 #151c25);"
-            "border: 3px solid #bfc9d6;"
-            "border-radius: 54px;"
-            "font-size: 30px;"
-            "font-weight: 900;"
-            "padding-bottom: 4px;"));
-    }
-    if (avatarId.endsWith(QStringLiteral("05"))) {
-        return UiScale::scaleStyleSheet(QStringLiteral(
-            "color: #f7e4c9;"
-            "background-color: qradialgradient(cx:0.5, cy:0.42, radius:0.8, fx:0.46, fy:0.34, stop:0 #71639f, stop:0.5 #3f3567, stop:1 #18142a);"
-            "border: 3px solid #cfb0f1;"
-            "border-radius: 54px;"
-            "font-size: 32px;"
-            "font-weight: 900;"
-            "padding-bottom: 4px;"));
-    }
-    if (avatarId.endsWith(QStringLiteral("06"))) {
-        return UiScale::scaleStyleSheet(QStringLiteral(
-            "color: #d8fff0;"
-            "background-color: qradialgradient(cx:0.5, cy:0.42, radius:0.8, fx:0.46, fy:0.34, stop:0 #4c7f78, stop:0.5 #27534d, stop:1 #122723);"
-            "border: 3px solid #8fd8c4;"
-            "border-radius: 54px;"
-            "font-size: 30px;"
-            "font-weight: 900;"
-            "padding-bottom: 4px;"));
-    }
-    if (avatarId.endsWith(QStringLiteral("07"))) {
-        return UiScale::scaleStyleSheet(QStringLiteral(
-            "color: #ffe3c4;"
-            "background-color: qradialgradient(cx:0.5, cy:0.42, radius:0.8, fx:0.46, fy:0.34, stop:0 #8a6f4b, stop:0.5 #5b4328, stop:1 #241a11);"
-            "border: 3px solid #e2bc79;"
-            "border-radius: 54px;"
-            "font-size: 30px;"
-            "font-weight: 900;"
-            "padding-bottom: 4px;"));
-    }
-    return UiScale::scaleStyleSheet(QStringLiteral(
-        "color: #ffe9b0;"
-        "background-color: qradialgradient(cx:0.5, cy:0.42, radius:0.8, fx:0.46, fy:0.34, stop:0 #8c7c59, stop:0.5 #55452f, stop:1 #221a12);"
-        "border: 3px solid #efcd83;"
-        "border-radius: 54px;"
-        "font-size: 30px;"
-        "font-weight: 900;"
-        "padding-bottom: 4px;"));
 }

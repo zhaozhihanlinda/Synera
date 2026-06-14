@@ -106,9 +106,13 @@ ShopPage::ShopPage(QWidget *parent)
     , roundValueLabel(new QLabel(QStringLiteral("1"), this))
     , goldValueLabel(new QLabel(QStringLiteral("30"), this))
     , populationValueLabel(new QLabel(QStringLiteral("0 / 3"), this))
+    , shopRuleLabel(nullptr)
+    , refreshShopButton(nullptr)
     , enterDeployButton(nullptr)
     , currentGold(30)
     , ownedUnitCapacity(8)
+    , currentRefreshCost(1)
+    , currentCanRefreshShop(true)
     , ownedUnitsLayout(nullptr)
     , shopCardsLayout(nullptr)
     , unitDetailOverlay(nullptr)
@@ -148,6 +152,21 @@ ShopPage::ShopPage(QWidget *parent)
 
     auto *shopTitle = new QLabel(QStringLiteral("可购买角色"), shopPanel);
     shopTitle->setObjectName("panelTitle");
+
+    shopRuleLabel = new QLabel(
+        QStringLiteral("商店每轮首次进入会免费刷新 5 个角色槽位。手动刷新消耗 1 金币；备战区满时不能购买，但仍可刷新。"),
+        shopPanel);
+    shopRuleLabel->setObjectName("hintText");
+    shopRuleLabel->setWordWrap(true);
+
+    auto *shopActionRow = new QHBoxLayout;
+    shopActionRow->setSpacing(UiScale::scaled(12));
+    refreshShopButton = new QPushButton(QStringLiteral("刷新商店 -1 金币"), shopPanel);
+    refreshShopButton->setObjectName("secondaryButton");
+    refreshShopButton->setCursor(Qt::PointingHandCursor);
+    refreshShopButton->setMinimumHeight(UiScale::height(46));
+    shopActionRow->addWidget(refreshShopButton, 0, Qt::AlignLeft);
+    shopActionRow->addStretch(1);
 
     shopCardsLayout = new QGridLayout;
     shopCardsLayout->setHorizontalSpacing(UiScale::scaled(14));
@@ -196,6 +215,8 @@ ShopPage::ShopPage(QWidget *parent)
     shopPanelLayout->addLayout(ownedUnitsLayout);
     shopPanelLayout->addSpacing(UiScale::scaled(10));
     shopPanelLayout->addWidget(shopTitle);
+    shopPanelLayout->addWidget(shopRuleLabel);
+    shopPanelLayout->addLayout(shopActionRow);
     shopPanelLayout->addLayout(shopCardsLayout);
     shopPanelLayout->addSpacing(UiScale::scaled(8));
     shopPanelLayout->addWidget(enterDeployButton, 0, Qt::AlignLeft);
@@ -306,6 +327,23 @@ ShopPage::ShopPage(QWidget *parent)
         #primaryButton:hover {
             background-color: #98723f;
         }
+        #secondaryButton {
+            color: #ffffff;
+            background-color: #28344f;
+            border: 2px solid #7082ab;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 700;
+            padding: 10px 20px;
+        }
+        #secondaryButton:hover {
+            background-color: #364566;
+        }
+        #secondaryButton:disabled {
+            color: #738198;
+            background-color: rgba(22, 28, 40, 180);
+            border: 2px solid rgba(86, 99, 119, 150);
+        }
         #buyButton {
             color: #ffffff;
             background-color: #7d5a2c;
@@ -341,6 +379,10 @@ ShopPage::ShopPage(QWidget *parent)
         qDebug() << "Enter deploy clicked";
         emit enterDeployClicked();
     });
+    connect(refreshShopButton, &QPushButton::clicked, this, [this]() {
+        qDebug() << "Refresh shop clicked";
+        emit refreshShopClicked();
+    });
     connect(closeDetailButton, &QPushButton::clicked, unitDetailOverlay, &QWidget::hide);
 }
 
@@ -358,9 +400,12 @@ void ShopPage::populateShopCards()
         delete child;
     }
 
-    const QVector<UnitTemplate> shopTemplates = defaultShopTemplates();
-    for (int index = 0; index < shopTemplates.size(); ++index) {
-        const UnitTemplate unitTemplate = shopTemplates.at(index);
+    for (int index = 0; index < currentShopTemplateIds.size(); ++index) {
+        const UnitTemplate unitTemplate = playerUnitTemplateById(currentShopTemplateIds.at(index));
+        if (unitTemplate.templateId.isEmpty()) {
+            continue;
+        }
+
         const bool canBuy = currentGold >= unitTemplate.cost && ownedUnits.size() < ownedUnitCapacity;
         const bool canSell = sellableTemplateIds.contains(unitTemplate.templateId);
         shopCardsLayout->addWidget(createShopCard(unitTemplate, canBuy, canSell, this, this), 0, index);
@@ -373,7 +418,10 @@ void ShopPage::setGameInfo(int round,
                            int maxPopulation,
                            const QVector<UnitPtr> &units,
                            int capacity,
-                           const QVector<QString> &sellableIds)
+                           const QVector<QString> &sellableIds,
+                           const QVector<QString> &shopTemplateIds,
+                           int refreshCost,
+                           bool canRefreshShop)
 {
     Q_UNUSED(currentPopulation);
     roundValueLabel->setText(QString::number(round));
@@ -383,6 +431,18 @@ void ShopPage::setGameInfo(int round,
     ownedUnits = units;
     ownedUnitCapacity = capacity;
     sellableTemplateIds = sellableIds;
+    currentShopTemplateIds = shopTemplateIds;
+    currentRefreshCost = refreshCost;
+    currentCanRefreshShop = canRefreshShop;
+    if (refreshShopButton) {
+        refreshShopButton->setText(QStringLiteral("刷新商店 -%1 金币").arg(currentRefreshCost));
+        refreshShopButton->setEnabled(currentCanRefreshShop);
+        refreshShopButton->setCursor(currentCanRefreshShop ? Qt::PointingHandCursor : Qt::ForbiddenCursor);
+    }
+    if (shopRuleLabel) {
+        shopRuleLabel->setText(QStringLiteral("商店每轮首次进入会免费刷新 5 个角色槽位。手动刷新消耗 %1 金币；备战区满时不能购买，但仍可刷新。")
+                                   .arg(currentRefreshCost));
+    }
     refreshOwnedUnits();
     populateShopCards();
 }

@@ -24,13 +24,10 @@ protected:
 
 private:
     void randomizeProfile();
-    QString randomAvatarLabel() const;
-    QString randomNickname() const;
-    QString avatarSymbolForId(const QString &avatarId) const;
-    QString avatarStyleForId(const QString &avatarId) const;
     void refreshProfile();
 
     PlayerProfile currentProfile;
+    int lastProfileIndex;
     QLabel *avatarLabel;
     QLabel *nicknameLabel;
     QPushButton *rerollButton;

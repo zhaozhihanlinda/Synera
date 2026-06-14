@@ -1,5 +1,6 @@
 #include "pages/initinfopage.h"
 
+#include "core/playeravatar.h"
 #include "core/uiscale.h"
 
 #include <QDebug>
@@ -283,7 +284,8 @@ void InitInfoPage::setGameInfo(const PlayerProfile &profile,
                                int gold,
                                int populationLimit)
 {
-    avatarValueLabel->setText(profile.avatarId);
+    avatarValueLabel->setText(playerAvatarSymbolForId(profile.avatarId));
+    avatarValueLabel->setStyleSheet(playerAvatarStyleForId(profile.avatarId, 90, 52));
     nicknameValueLabel->setText(profile.nickname);
     hpValueLabel->setText(QString::number(hp));
     goldValueLabel->setText(QString::number(gold));

@@ -4,7 +4,6 @@
 enum class PageId {
     Start,
     Profile,
-    Rule,
     InitInfo,
     Draw,
     Shop,

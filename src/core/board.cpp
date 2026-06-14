@@ -96,6 +96,13 @@ bool Board::canMoveUnit(int fromRow, int fromCol, int toRow, int toCol) const
     return canPlaceUnit(unit, toRow, toCol);
 }
 
+bool Board::canMoveUnitDuringBattle(int fromRow, int fromCol, int toRow, int toCol) const
+{
+    const UnitPtr unit = unitAt(fromRow, fromCol);
+    return unit && isInside(toRow, toCol) && (fromRow != toRow || fromCol != toCol)
+        && !isOccupied(toRow, toCol);
+}
+
 bool Board::canSwapUnits(int firstRow, int firstCol, int secondRow, int secondCol) const
 {
     if (!isInside(firstRow, firstCol) || !isInside(secondRow, secondCol)
@@ -146,6 +153,19 @@ bool Board::moveUnit(int fromRow, int fromCol, int toRow, int toCol)
 {
     UnitPtr unit = unitAt(fromRow, fromCol);
     if (!unit || !canMoveUnit(fromRow, fromCol, toRow, toCol)) {
+        return false;
+    }
+
+    m_grid[fromRow][fromCol] = nullptr;
+    m_grid[toRow][toCol] = unit;
+    unit->setBoardPosition({toRow, toCol});
+    return true;
+}
+
+bool Board::moveUnitDuringBattle(int fromRow, int fromCol, int toRow, int toCol)
+{
+    UnitPtr unit = unitAt(fromRow, fromCol);
+    if (!unit || !canMoveUnitDuringBattle(fromRow, fromCol, toRow, toCol)) {
         return false;
     }
 

@@ -24,12 +24,11 @@ Widgets.
 - `include/pages`, `src/pages`: Qt pages and page-level UI flow.
 - `include/widgets`, `src/widgets`: reusable board, bench, and battle info
   widgets.
-- `Synera_zh_CN.ts`: translation source file, currently optional.
 
 ## Core Classes
 
 - `GameManager`: owns the current game state, player resources, board, round
-  state, shop buy/sell behavior, temporary battle result calculation, and
+  state, shop buy/sell behavior, minimal automatic battle simulation, and
   settlement.
 - `Board`: owns the 8 x 8 grid and 8-slot bench, including deployment-side
   restrictions and board/bench movement.
@@ -44,14 +43,13 @@ Widgets.
 
 1. Start page.
 2. Profile page with randomized identity.
-3. Rule page.
-4. Initial info page.
-5. Enemy draw page.
-6. Shop or direct deployment.
-7. Main game deployment on an 8 x 8 board.
-8. Temporary battle display and auto settlement.
-9. Round result.
-10. Next round, victory page, or defeat page.
+3. Initial info page.
+4. Enemy draw page.
+5. Shop or direct deployment.
+6. Main game deployment on an 8 x 8 board.
+7. Minimal automatic battle simulation and settlement.
+8. Round result.
+9. Next round, victory page, or defeat page.
 
 ## Current Rules and Data
 
@@ -64,8 +62,9 @@ Widgets.
 - Shop: uses the current static player unit template list and deducts/refunds
   gold through `GameManager`.
 - Enemy encounters: temporary fixed formations are grouped by round and style.
-- Battle result: currently uses placeholder power comparison based on unit
-  stats. It does not simulate movement, attacks, skill casting, or unit deaths.
+- Battle: currently uses a minimal tick-based automatic simulation. Units choose
+  the nearest living enemy, attack when in range, move one tile toward the target
+  when out of range, and are removed from the board when defeated.
 - Settlement: wins grant the current temporary round rewards; losses grant a
   small reward and deduct round-based HP.
 
@@ -128,7 +127,5 @@ The current player unit templates may already contain static fields for:
 
 These fields are intentionally reserved so the design data is not lost, but they do not enable any gameplay systems yet.
 
-Not implemented yet:
-
 - skill casting behavior or skill resolution
-- real unit movement, attacks, and death resolution
+- advanced targeting AI, projectiles, pathfinding, or animation timing

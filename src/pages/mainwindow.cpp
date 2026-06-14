@@ -10,7 +10,6 @@
 #include "core/pagemanager.h"
 #include "pages/profilepage.h"
 #include "pages/roundresultpage.h"
-#include "pages/rulepage.h"
 #include "pages/shoppage.h"
 #include "pages/startpage.h"
 #include "pages/victorypage.h"
@@ -23,7 +22,8 @@
 
 namespace {
 
-const int kBattlePlaceholderDurationMs = 5000;
+const int kBattleSimulationIntervalMs = 750;
+const int kBattleSimulationMaxSeconds = 30;
 
 }
 
@@ -35,7 +35,6 @@ MainWindow::MainWindow(QWidget *parent)
     , pageManager(nullptr)
     , startPage(nullptr)
     , profilePage(nullptr)
-    , rulePage(nullptr)
     , initInfoPage(nullptr)
     , drawPage(nullptr)
     , shopPage(nullptr)
@@ -44,6 +43,8 @@ MainWindow::MainWindow(QWidget *parent)
     , roundResultPage(nullptr)
     , victoryPage(nullptr)
     , defeatPage(nullptr)
+    , battleSimulationTimer(new QTimer(this))
+    , activeBattleRound(0)
 {
     ui->setupUi(this);
 
@@ -53,7 +54,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     startPage = new StartPage(stackedWidget);
     profilePage = new ProfilePage(stackedWidget);
-    rulePage = new RulePage(stackedWidget);
     initInfoPage = new InitInfoPage(stackedWidget);
     drawPage = new DrawPage(stackedWidget);
     shopPage = new ShopPage(stackedWidget);
@@ -65,7 +65,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     pageManager->registerPage(PageId::Start, startPage);
     pageManager->registerPage(PageId::Profile, profilePage);
-    pageManager->registerPage(PageId::Rule, rulePage);
     pageManager->registerPage(PageId::InitInfo, initInfoPage);
     pageManager->registerPage(PageId::Draw, drawPage);
     pageManager->registerPage(PageId::Shop, shopPage);
@@ -81,10 +80,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(profilePage, &ProfilePage::confirmClicked, this, [this](const PlayerProfile &profile) {
         gameManager->setPlayerProfile(profile);
-        pageManager->switchTo(PageId::Rule);
-    });
-
-    connect(rulePage, &RulePage::startGameClicked, this, [this]() {
         gameManager->initNewGame();
         prepareInitInfoPage();
         pageManager->switchTo(PageId::InitInfo);
@@ -123,6 +118,11 @@ MainWindow::MainWindow(QWidget *parent)
             prepareShopPage();
         }
     });
+    connect(shopPage, &ShopPage::refreshShopClicked, this, [this]() {
+        if (gameManager->refreshShop()) {
+            prepareShopPage();
+        }
+    });
 
     connect(mainGamePage, &MainGamePage::startBattleClicked, this, [this]() {
         pageManager->switchTo(PageId::BattleCountdown);
@@ -130,15 +130,10 @@ MainWindow::MainWindow(QWidget *parent)
     });
     connect(battleCountdownPage, &BattleCountdownPage::countdownFinished, this, [this]() {
         gameManager->beginBattlePhase();
-        const int battleRound = gameManager->currentRound();
+        activeBattleRound = gameManager->currentRound();
         prepareMainGamePage();
         pageManager->switchTo(PageId::MainGame);
-        QTimer::singleShot(kBattlePlaceholderDurationMs, this, [this, battleRound]() {
-            if (gameManager && gameManager->phase() == GamePhase::Battle
-                && gameManager->currentRound() == battleRound) {
-                resolveBattleAndShowResult();
-            }
-        });
+        battleSimulationTimer->start(kBattleSimulationIntervalMs);
     });
     connect(mainGamePage, &MainGamePage::returnShopClicked, this, [this]() {
         prepareShopPage();
@@ -173,6 +168,7 @@ MainWindow::MainWindow(QWidget *parent)
         pageManager->switchTo(PageId::Start);
     });
     connect(defeatPage, &DefeatPage::exitClicked, qApp, &QApplication::quit);
+    connect(battleSimulationTimer, &QTimer::timeout, this, &MainWindow::tickBattleSimulation);
 
     setCentralWidget(stackedWidget);
     setWindowTitle(QStringLiteral("Synera"));
@@ -211,7 +207,10 @@ void MainWindow::prepareShopPage()
                           gameManager->maxPopulation(),
                           gameManager->ownedPlayerUnits(),
                           gameManager->board().benchCapacity(),
-                          gameManager->sellableUnitTemplateIds());
+                          gameManager->sellableUnitTemplateIds(),
+                          gameManager->currentShopTemplateIds(),
+                          gameManager->shopRefreshCost(),
+                          gameManager->canRefreshShop());
 }
 
 void MainWindow::prepareMainGamePage()
@@ -229,11 +228,32 @@ void MainWindow::prepareRoundResultPage()
 
 void MainWindow::startNewSession()
 {
+    battleSimulationTimer->stop();
+    activeBattleRound = 0;
     pageManager->switchTo(PageId::Profile);
+}
+
+void MainWindow::tickBattleSimulation()
+{
+    if (!gameManager || gameManager->phase() != GamePhase::Battle
+        || gameManager->currentRound() != activeBattleRound) {
+        battleSimulationTimer->stop();
+        return;
+    }
+
+    gameManager->advanceBattleSimulationTick();
+    prepareMainGamePage();
+
+    if (gameManager->isBattleResolved()
+        || gameManager->roundState().battleElapsedSeconds >= kBattleSimulationMaxSeconds) {
+        battleSimulationTimer->stop();
+        resolveBattleAndShowResult();
+    }
 }
 
 void MainWindow::resolveBattleAndShowResult()
 {
+    battleSimulationTimer->stop();
     const BattleResult result = gameManager->calculateBattleResult();
     gameManager->saveBattleResult(result);
     prepareRoundResultPage();

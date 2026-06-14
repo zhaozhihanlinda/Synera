@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.16)
 
 project(Synera VERSION 0.1 LANGUAGES CXX)
 
-option(SYNERA_ENABLE_TRANSLATIONS "Enable Qt Linguist translation generation" OFF)
-
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -14,16 +12,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 
-if(SYNERA_ENABLE_TRANSLATIONS)
-    find_package(Qt${QT_VERSION_MAJOR} QUIET COMPONENTS LinguistTools)
-    if(NOT Qt${QT_VERSION_MAJOR}LinguistTools_FOUND)
-        message(WARNING "Qt LinguistTools not found. Translation generation will be disabled.")
-        set(SYNERA_ENABLE_TRANSLATIONS OFF)
-    endif()
-endif()
-
-set(TS_FILES Synera_zh_CN.ts)
-
 set(PROJECT_SOURCES
         src/main.cpp
         src/pages/mainwindow.cpp
@@ -32,8 +20,6 @@ set(PROJECT_SOURCES
         include/pages/startpage.h
         src/pages/profilepage.cpp
         include/pages/profilepage.h
-        src/pages/rulepage.cpp
-        include/pages/rulepage.h
         src/pages/initinfopage.cpp
         include/pages/initinfopage.h
         src/pages/drawpage.cpp
@@ -71,10 +57,12 @@ set(PROJECT_SOURCES
         src/widgets/benchwidget.cpp
         include/widgets/benchwidget.h
         include/core/playerprofile.h
+        include/core/playeravatar.h
         include/core/pageid.h
         include/core/roundstate.h
         src/pages/mainwindow.ui
 )
+list(TRANSFORM PROJECT_SOURCES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(Synera
@@ -99,14 +87,6 @@ else()
     endif()
 endif()
 
-if(SYNERA_ENABLE_TRANSLATIONS)
-    target_sources(Synera PRIVATE ${TS_FILES})
-    if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-        qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
-    else()
-        qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
-    endif()
-endif()
 target_include_directories(Synera PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )

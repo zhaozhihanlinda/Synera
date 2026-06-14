@@ -44,6 +44,10 @@ public:
     bool canSellUnit(const QString &templateId) const;
     bool sellUnit(const QString &templateId);
     QVector<QString> sellableUnitTemplateIds() const;
+    QVector<QString> currentShopTemplateIds() const;
+    int shopRefreshCost() const;
+    bool canRefreshShop() const;
+    bool refreshShop();
     bool canDeployUnitFromBench(int slot, const BoardPosition &target) const;
     bool deployUnitFromBench(int slot, const BoardPosition &target);
     bool canReturnUnitToBench(const BoardPosition &position) const;
@@ -54,8 +58,10 @@ public:
     bool repositionUnit(const BoardPosition &from, const BoardPosition &to);
     void beginBattlePhase();
     void tickBattleTimer();
+    void advanceBattleSimulationTick();
+    bool isBattleResolved() const;
 
-    BattleResult calculateBattleResult() const;
+    BattleResult calculateBattleResult();
     void saveBattleResult(const BattleResult &result);
     BattleResult lastBattleResult() const;
 
@@ -78,6 +84,12 @@ private:
 
     void clearEnemyUnits();
     void loadCurrentEncounterFormation();
+    void ensureShopForCurrentRound();
+    QVector<QString> generateShopTemplateIds() const;
+    QVector<UnitPtr> activeUnitsForSide(ControllerSide side) const;
+    UnitPtr nearestLivingTarget(const UnitPtr &attacker, const QVector<UnitPtr> &targets) const;
+    void moveUnitTowardTarget(const UnitPtr &unit, const UnitPtr &target);
+    void removeDeadUnits();
     int combatPowerForSide(ControllerSide side) const;
     bool removePlayerUnitById(const QString &unitId);
 
@@ -90,6 +102,8 @@ private:
     EnemyEncounterInfo m_currentEncounterInfo;
     BattleResult m_lastBattleResult;
     QVector<PurchasedUnitRecord> m_purchasedUnits;
+    QVector<QString> m_shopTemplateIds;
+    int m_shopRound;
 };
 
 #endif // GAMEMANAGER_H

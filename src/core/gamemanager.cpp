@@ -4,6 +4,9 @@
 #include "core/unit.h"
 #include "core/unittemplate.h"
 
+#include <algorithm>
+#include <cstdlib>
+#include <QRandomGenerator>
 #include <QtGlobal>
 
 namespace {
@@ -40,13 +43,37 @@ int loseDamageForRound(int round)
     }
 }
 
+int maxPopulationForRound(int round)
+{
+    switch (round) {
+    case 1:
+        return 3;
+    case 2:
+        return 4;
+    case 3:
+        return 5;
+    case 4:
+        return 6;
+    default:
+        return 7;
+    }
+}
+
+constexpr int kShopSlotCount = 5;
+constexpr int kShopRefreshCost = 1;
+int distanceBetween(const BoardPosition &first, const BoardPosition &second)
+{
+    return std::abs(first.row - second.row) + std::abs(first.col - second.col);
+}
+
 }
 
 GameManager::GameManager(QObject *parent)
     : QObject(parent)
     , m_playerHp(100)
     , m_playerGold(30)
-    , m_maxPopulation(3)
+    , m_maxPopulation(maxPopulationForRound(1))
+    , m_shopRound(0)
 {
     m_roundState.beginDeployPhase(1);
     m_roundState.finalRound = 5;
@@ -67,11 +94,13 @@ void GameManager::initNewGame()
     m_board.clear();
     m_playerHp = 100;
     m_playerGold = 30;
-    m_maxPopulation = 3;
+    m_maxPopulation = maxPopulationForRound(1);
     m_roundState.beginDeployPhase(1);
     m_roundState.finalRound = 5;
     m_lastBattleResult = BattleResult{};
     m_purchasedUnits.clear();
+    m_shopTemplateIds.clear();
+    m_shopRound = 0;
     drawCurrentRoundEncounter();
 
     const QVector<UnitTemplate> starterTemplates = defaultStarterBenchTemplates();
@@ -86,6 +115,9 @@ void GameManager::nextRound()
 {
     clearEnemyUnits();
     m_roundState.beginDeployPhase(m_roundState.currentRound + 1);
+    m_maxPopulation = maxPopulationForRound(m_roundState.currentRound);
+    m_shopTemplateIds.clear();
+    m_shopRound = 0;
     drawCurrentRoundEncounter();
 }
 
@@ -261,6 +293,45 @@ QVector<QString> GameManager::sellableUnitTemplateIds() const
     return templateIds;
 }
 
+QVector<QString> GameManager::currentShopTemplateIds() const
+{
+    const_cast<GameManager *>(this)->ensureShopForCurrentRound();
+    return m_shopTemplateIds;
+}
+
+int GameManager::shopRefreshCost() const
+{
+    return kShopRefreshCost;
+}
+
+bool GameManager::canRefreshShop() const
+{
+    return m_playerGold >= kShopRefreshCost;
+}
+
+bool GameManager::refreshShop()
+{
+    if (!canRefreshShop()) {
+        return false;
+    }
+
+    const QVector<QString> previousShop = m_shopTemplateIds;
+    m_playerGold -= kShopRefreshCost;
+    m_shopTemplateIds = generateShopTemplateIds();
+
+    if (m_shopTemplateIds == previousShop && !m_shopTemplateIds.isEmpty()) {
+        const QVector<UnitTemplate> templates = allPlayerUnitTemplates();
+        if (!templates.isEmpty()) {
+            const int slot = QRandomGenerator::global()->bounded(m_shopTemplateIds.size());
+            const int replacement = QRandomGenerator::global()->bounded(templates.size());
+            m_shopTemplateIds[slot] = templates.at(replacement).templateId;
+        }
+    }
+
+    m_shopRound = m_roundState.currentRound;
+    return true;
+}
+
 bool GameManager::canDeployUnitFromBench(int slot, const BoardPosition &target) const
 {
     if (!m_roundState.canDeploy() || !target.isValid()) {
@@ -358,7 +429,64 @@ void GameManager::tickBattleTimer()
     m_roundState.tickBattleTimer();
 }
 
-BattleResult GameManager::calculateBattleResult() const
+void GameManager::advanceBattleSimulationTick()
+{
+    if (m_roundState.phase != GamePhase::Battle || isBattleResolved()) {
+        return;
+    }
+
+    const QVector<UnitPtr> playerUnits = activeUnitsForSide(ControllerSide::PlayerCtrl);
+    const QVector<UnitPtr> enemyUnits = activeUnitsForSide(ControllerSide::EnemyCtrl);
+
+    for (const UnitPtr &unit : playerUnits) {
+        if (!unit || !unit->isAlive()) {
+            continue;
+        }
+        const UnitPtr target = nearestLivingTarget(unit, enemyUnits);
+        if (!target) {
+            continue;
+        }
+        if (distanceBetween(unit->boardPosition(), target->boardPosition()) <= unit->range()) {
+            unit->setState(UnitState::Attacking);
+            target->applyDamage(unit->atk());
+            unit->gainMana(unit->manaGainOnAttack());
+            target->gainMana(target->manaGainOnHit());
+        } else {
+            moveUnitTowardTarget(unit, target);
+        }
+    }
+
+    removeDeadUnits();
+
+    const QVector<UnitPtr> remainingPlayerUnits = activeUnitsForSide(ControllerSide::PlayerCtrl);
+    for (const UnitPtr &unit : activeUnitsForSide(ControllerSide::EnemyCtrl)) {
+        if (!unit || !unit->isAlive()) {
+            continue;
+        }
+        const UnitPtr target = nearestLivingTarget(unit, remainingPlayerUnits);
+        if (!target) {
+            continue;
+        }
+        if (distanceBetween(unit->boardPosition(), target->boardPosition()) <= unit->range()) {
+            unit->setState(UnitState::Attacking);
+            target->applyDamage(unit->atk());
+            unit->gainMana(unit->manaGainOnAttack());
+            target->gainMana(target->manaGainOnHit());
+        } else {
+            moveUnitTowardTarget(unit, target);
+        }
+    }
+
+    removeDeadUnits();
+}
+
+bool GameManager::isBattleResolved() const
+{
+    return activeUnitsForSide(ControllerSide::PlayerCtrl).isEmpty()
+        || activeUnitsForSide(ControllerSide::EnemyCtrl).isEmpty();
+}
+
+BattleResult GameManager::calculateBattleResult()
 {
     BattleResult result;
     const int playerPower = combatPowerForSide(ControllerSide::PlayerCtrl);
@@ -451,6 +579,106 @@ void GameManager::loadCurrentEncounterFormation()
                               ControllerSide::EnemyCtrl),
                           formationUnit.position.row,
                           formationUnit.position.col);
+    }
+}
+
+void GameManager::ensureShopForCurrentRound()
+{
+    if (m_shopRound == m_roundState.currentRound && m_shopTemplateIds.size() == kShopSlotCount) {
+        return;
+    }
+
+    m_shopTemplateIds = generateShopTemplateIds();
+    m_shopRound = m_roundState.currentRound;
+}
+
+QVector<QString> GameManager::generateShopTemplateIds() const
+{
+    QVector<QString> templateIds;
+    const QVector<UnitTemplate> templates = allPlayerUnitTemplates();
+    if (templates.isEmpty()) {
+        return templateIds;
+    }
+
+    templateIds.reserve(kShopSlotCount);
+    for (int index = 0; index < kShopSlotCount; ++index) {
+        const int templateIndex = QRandomGenerator::global()->bounded(templates.size());
+        templateIds.append(templates.at(templateIndex).templateId);
+    }
+    return templateIds;
+}
+
+QVector<UnitPtr> GameManager::activeUnitsForSide(ControllerSide side) const
+{
+    QVector<UnitPtr> units;
+    for (int row = 0; row < m_board.rowCount(); ++row) {
+        for (int col = 0; col < m_board.columnCount(); ++col) {
+            const UnitPtr unit = m_board.unitAt(row, col);
+            if (unit && unit->owner() == side && unit->isAlive()) {
+                units.append(unit);
+            }
+        }
+    }
+    return units;
+}
+
+UnitPtr GameManager::nearestLivingTarget(const UnitPtr &attacker, const QVector<UnitPtr> &targets) const
+{
+    if (!attacker) {
+        return nullptr;
+    }
+
+    UnitPtr bestTarget;
+    int bestDistance = m_board.rowCount() + m_board.columnCount() + 1;
+    for (const UnitPtr &target : targets) {
+        if (!target || !target->isAlive()) {
+            continue;
+        }
+        const int distance = distanceBetween(attacker->boardPosition(), target->boardPosition());
+        if (!bestTarget || distance < bestDistance) {
+            bestTarget = target;
+            bestDistance = distance;
+        }
+    }
+    return bestTarget;
+}
+
+void GameManager::moveUnitTowardTarget(const UnitPtr &unit, const UnitPtr &target)
+{
+    if (!unit || !target || !unit->isAlive() || !target->isAlive()) {
+        return;
+    }
+
+    const BoardPosition from = unit->boardPosition();
+    const BoardPosition to = target->boardPosition();
+    const int rowStep = to.row == from.row ? 0 : (to.row > from.row ? 1 : -1);
+    const int colStep = to.col == from.col ? 0 : (to.col > from.col ? 1 : -1);
+
+    const QVector<BoardPosition> candidates = {
+        {from.row + rowStep, from.col},
+        {from.row, from.col + colStep},
+        {from.row + rowStep, from.col + colStep}
+    };
+
+    for (const BoardPosition &candidate : candidates) {
+        if (m_board.moveUnitDuringBattle(from.row, from.col, candidate.row, candidate.col)) {
+            unit->setState(UnitState::Moving);
+            return;
+        }
+    }
+
+    unit->setState(UnitState::Idle);
+}
+
+void GameManager::removeDeadUnits()
+{
+    for (int row = 0; row < m_board.rowCount(); ++row) {
+        for (int col = 0; col < m_board.columnCount(); ++col) {
+            const UnitPtr unit = m_board.unitAt(row, col);
+            if (unit && !unit->isAlive()) {
+                m_board.removeUnit(row, col);
+            }
+        }
     }
 }
 
