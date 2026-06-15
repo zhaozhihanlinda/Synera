@@ -15,9 +15,12 @@
 #include "pages/victorypage.h"
 #include "./ui_mainwindow.h"
 
+#include <QAbstractButton>
 #include <QApplication>
+#include <QMessageBox>
 #include <QStackedWidget>
 #include <QStatusBar>
+#include <QStringList>
 #include <QTimer>
 
 namespace {
@@ -113,8 +116,13 @@ MainWindow::MainWindow(QWidget *parent)
             prepareShopPage();
         }
     });
-    connect(shopPage, &ShopPage::sellUnitClicked, this, [this](const QString &templateId) {
-        if (gameManager->sellUnit(templateId)) {
+    connect(shopPage, &ShopPage::cancelPurchaseClicked, this, [this](const QString &templateId) {
+        if (gameManager->cancelPurchasedUnit(templateId)) {
+            prepareShopPage();
+        }
+    });
+    connect(shopPage, &ShopPage::sellUnitClicked, this, [this](const QString &unitId) {
+        if (gameManager->sellUnitById(unitId)) {
             prepareShopPage();
         }
     });
@@ -130,6 +138,7 @@ MainWindow::MainWindow(QWidget *parent)
             return;
         }
         pageManager->switchTo(PageId::BattleCountdown);
+        showCurrentEnemyPreview();
         battleCountdownPage->startCountdown(3);
     });
     connect(battleCountdownPage, &BattleCountdownPage::countdownFinished, this, [this]() {
@@ -217,6 +226,7 @@ void MainWindow::prepareShopPage()
                           gameManager->ownedPlayerUnits(),
                           gameManager->board().benchCapacity(),
                           gameManager->sellableUnitTemplateIds(),
+                          gameManager->sellableUnitIds(),
                           gameManager->currentShopTemplateIds(),
                           gameManager->shopRefreshCost(),
                           gameManager->canRefreshShop());
@@ -240,6 +250,45 @@ void MainWindow::startNewSession()
     battleSimulationTimer->stop();
     activeBattleRound = 0;
     pageManager->switchTo(PageId::Profile);
+}
+
+void MainWindow::showCurrentEnemyPreview()
+{
+    if (!gameManager) {
+        return;
+    }
+
+    QStringList enemyLines;
+    const Board &board = gameManager->board();
+    for (int row = 0; row < board.rowCount(); ++row) {
+        for (int col = 0; col < board.columnCount(); ++col) {
+            const UnitPtr unit = board.unitAt(row, col);
+            if (!unit || unit->owner() != ControllerSide::EnemyCtrl) {
+                continue;
+            }
+
+            enemyLines.append(QStringLiteral("%1  (%2,%3)\nHP %4  ATK %5  Range %6  AS %7\n技能：%8")
+                                  .arg(unit->name())
+                                  .arg(row)
+                                  .arg(col)
+                                  .arg(unit->maxHp())
+                                  .arg(unit->atk())
+                                  .arg(unit->range())
+                                  .arg(unit->attackSpeed(), 0, 'f', 1)
+                                  .arg(unit->skillName().isEmpty() ? QStringLiteral("-") : unit->skillName()));
+        }
+    }
+
+    QMessageBox preview(this);
+    preview.setWindowTitle(QStringLiteral("本轮敌军预览"));
+    preview.setIcon(QMessageBox::Information);
+    preview.setText(QStringLiteral("本轮遇到的敌军角色"));
+    preview.setInformativeText(enemyLines.isEmpty()
+                                   ? QStringLiteral("当前没有敌军信息。")
+                                   : enemyLines.join(QStringLiteral("\n\n")));
+    preview.setStandardButtons(QMessageBox::Ok);
+    preview.button(QMessageBox::Ok)->setText(QStringLiteral("开始倒计时"));
+    preview.exec();
 }
 
 void MainWindow::tickBattleSimulation()

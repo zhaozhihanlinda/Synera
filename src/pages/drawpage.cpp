@@ -10,6 +10,7 @@
 #include <QPainter>
 #include <QPushButton>
 #include <QRandomGenerator>
+#include <QScrollArea>
 #include <QVBoxLayout>
 
 namespace {
@@ -153,8 +154,8 @@ DrawPage::DrawPage(QWidget *parent)
 
     ownedUnitsCard = new QFrame(ownedUnitsOverlay);
     ownedUnitsCard->setObjectName("ownedCard");
-    ownedUnitsCard->setMinimumSize(UiScale::size(1260, 920));
-    ownedUnitsCard->setMaximumSize(UiScale::size(1260, 920));
+    ownedUnitsCard->setMinimumSize(UiScale::size(900, 680));
+    ownedUnitsCard->setMaximumSize(UiScale::size(980, 760));
 
     auto *ownedCardLayout = new QVBoxLayout(ownedUnitsCard);
     ownedCardLayout->setContentsMargins(UiScale::margins(28, 26, 28, 22));
@@ -166,11 +167,20 @@ DrawPage::DrawPage(QWidget *parent)
     ownedSubtitle->setObjectName("hintText");
     ownedSubtitle->setWordWrap(true);
 
-    auto *cardsContainer = new QWidget(ownedUnitsCard);
+    auto *ownedScrollArea = new QScrollArea(ownedUnitsCard);
+    ownedScrollArea->setObjectName("ownedScrollArea");
+    ownedScrollArea->setWidgetResizable(true);
+    ownedScrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    ownedScrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+    ownedScrollArea->setFrameShape(QFrame::NoFrame);
+
+    auto *cardsContainer = new QWidget(ownedScrollArea);
+    cardsContainer->setObjectName("ownedScrollContent");
     ownedUnitsGridLayout = new QGridLayout(cardsContainer);
-    ownedUnitsGridLayout->setContentsMargins(UiScale::margins(0, 0, 0, 0));
+    ownedUnitsGridLayout->setContentsMargins(UiScale::margins(0, 0, 12, 0));
     ownedUnitsGridLayout->setHorizontalSpacing(UiScale::scaled(14));
     ownedUnitsGridLayout->setVerticalSpacing(UiScale::scaled(14));
+    ownedScrollArea->setWidget(cardsContainer);
 
     auto *closeOwnedButton = new QPushButton(QStringLiteral("关闭窗口"), ownedUnitsCard);
     closeOwnedButton->setObjectName("secondaryButton");
@@ -179,7 +189,7 @@ DrawPage::DrawPage(QWidget *parent)
 
     ownedCardLayout->addWidget(ownedTitle);
     ownedCardLayout->addWidget(ownedSubtitle);
-    ownedCardLayout->addWidget(cardsContainer, 1);
+    ownedCardLayout->addWidget(ownedScrollArea, 1);
     ownedCardLayout->addWidget(closeOwnedButton, 0, Qt::AlignRight);
 
     overlayCenter->addWidget(ownedUnitsCard, 1);
@@ -217,12 +227,37 @@ DrawPage::DrawPage(QWidget *parent)
         #ownedUnitCard {
             background-color: rgba(16, 26, 40, 220);
             border: 2px solid rgba(111, 212, 222, 130);
-            border-radius: 18px;
+            border-radius: 12px;
         }
         #ownedEmptyCard {
             background-color: rgba(12, 20, 32, 170);
             border: 2px dashed rgba(123, 141, 181, 110);
-            border-radius: 18px;
+            border-radius: 12px;
+        }
+        #ownedScrollArea, #ownedScrollContent {
+            background-color: transparent;
+        }
+        QScrollBar:vertical {
+            background-color: rgba(8, 13, 23, 210);
+            border: 1px solid rgba(122, 144, 180, 130);
+            border-radius: 7px;
+            width: 14px;
+            margin: 0px;
+        }
+        QScrollBar::handle:vertical {
+            background-color: #84bfd6;
+            border-radius: 6px;
+            min-height: 56px;
+        }
+        QScrollBar::handle:vertical:hover {
+            background-color: #dbc183;
+        }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+            height: 0px;
+            background: transparent;
+        }
+        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+            background: transparent;
         }
         #tileLabel {
             color: #91a5c7;
@@ -399,7 +434,7 @@ void DrawPage::refreshOwnedUnitsView()
         const bool hasUnit = index < ownedUnits.size();
         const UnitPtr unit = hasUnit ? ownedUnits.at(index) : nullptr;
         card->setObjectName(hasUnit ? "ownedUnitCard" : "ownedEmptyCard");
-        card->setMinimumSize(UiScale::size(280, 360));
+        card->setMinimumSize(UiScale::size(390, 280));
         auto *layout = new QVBoxLayout(card);
         layout->setContentsMargins(UiScale::margins(14, 14, 14, 14));
         layout->setSpacing(UiScale::scaled(6));
@@ -451,7 +486,7 @@ void DrawPage::refreshOwnedUnitsView()
             layout->addStretch(1);
         }
 
-        ownedUnitsGridLayout->addWidget(card, index / 4, index % 4);
+        ownedUnitsGridLayout->addWidget(card, index / 2, index % 2);
     }
 }
 

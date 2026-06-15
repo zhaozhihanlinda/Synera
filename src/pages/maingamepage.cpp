@@ -89,6 +89,7 @@ MainGamePage::MainGamePage(QWidget *parent)
     , selectedStatsLabel(new QLabel(QStringLiteral("点击棋盘单位以查看属性"), this))
     , selectedTraitsLabel(new QLabel(QStringLiteral("Traits: -"), this))
     , deployWarningLabel(new QLabel(this))
+    , battleLogToggleButton(nullptr)
     , battleLogPanel(nullptr)
     , battleLogLabel(nullptr)
     , actionButton(nullptr)
@@ -100,6 +101,7 @@ MainGamePage::MainGamePage(QWidget *parent)
     , deployPanel(nullptr)
     , unitInfoPanel(nullptr)
     , battleInfoPanel(nullptr)
+    , battleLogExpanded(false)
 {
     setAttribute(Qt::WA_StyledBackground, true);
     setMinimumSize(UiScale::size(1280, 820));
@@ -190,6 +192,12 @@ MainGamePage::MainGamePage(QWidget *parent)
     sidePanel->addWidget(unitInfoPanel, 1);
     battlefieldRow->addWidget(sidePanelWidget, 1);
 
+    battleLogToggleButton = new QPushButton(QStringLiteral("▲ 战斗动态"), this);
+    battleLogToggleButton->setObjectName("battleLogToggleButton");
+    battleLogToggleButton->setCursor(Qt::PointingHandCursor);
+    battleLogToggleButton->setMinimumHeight(UiScale::height(42));
+    battleLogToggleButton->hide();
+
     battleLogPanel = new QFrame(this);
     battleLogPanel->setObjectName("battleLogPanel");
     battleLogPanel->hide();
@@ -221,6 +229,7 @@ MainGamePage::MainGamePage(QWidget *parent)
 
     rootLayout->addLayout(headerRow);
     rootLayout->addLayout(battlefieldRow, 1);
+    rootLayout->addWidget(battleLogToggleButton);
     rootLayout->addWidget(battleLogPanel);
     rootLayout->addWidget(battleInfoPanel);
     rootLayout->addWidget(deployPanel);
@@ -236,6 +245,19 @@ MainGamePage::MainGamePage(QWidget *parent)
             background-color: rgba(10, 16, 28, 215);
             border: 2px solid rgba(174, 150, 98, 180);
             border-radius: 22px;
+        }
+        #battleLogToggleButton {
+            color: #f5e4bd;
+            background-color: rgba(19, 31, 47, 230);
+            border: 2px solid rgba(132, 191, 214, 180);
+            border-radius: 16px;
+            font-size: 17px;
+            font-weight: 800;
+            padding: 8px 18px;
+        }
+        #battleLogToggleButton:hover {
+            background-color: rgba(31, 51, 71, 236);
+            border-color: #dbc183;
         }
         #battleInfoPanel {
             background-color: rgba(20, 24, 31, 232);
@@ -337,6 +359,10 @@ MainGamePage::MainGamePage(QWidget *parent)
         if (gameManager && gameManager->phase() == GamePhase::Deploy) {
             emit returnShopClicked();
         }
+    });
+    connect(battleLogToggleButton, &QPushButton::clicked, this, [this]() {
+        battleLogExpanded = !battleLogExpanded;
+        refreshBattleLogDrawer();
     });
     connect(battleInfoPanel, &BattleInfoPanel::closeClicked, this, [this]() {
         clearBoardSelection();
@@ -456,6 +482,8 @@ void MainGamePage::refreshPhaseUi()
         actionButton->show();
         returnShopButton->show();
         deployPanel->show();
+        battleLogExpanded = false;
+        battleLogToggleButton->hide();
         battleLogPanel->hide();
         if (gameManager && gameManager->currentPopulation() == 0) {
             deployWarningLabel->setText(QStringLiteral("至少部署 1 个单位后才能开始战斗。"));
@@ -490,10 +518,8 @@ void MainGamePage::refreshPhaseUi()
         actionButton->show();
         returnShopButton->hide();
         deployPanel->hide();
-        battleLogPanel->show();
-        battleLogLabel->setText(gameManager && !gameManager->battleLog().isEmpty()
-                                    ? gameManager->battleLog().join(QStringLiteral("\n"))
-                                    : QStringLiteral("战斗进行中，等待单位行动。"));
+        battleLogToggleButton->show();
+        refreshBattleLogDrawer();
         if (gameManager && !battleTimer->isActive()) {
             battleTimer->start();
         }
@@ -678,6 +704,29 @@ void MainGamePage::tickBattleTimer()
         gameManager->tickBattleTimer();
     }
     refreshHud();
+    refreshBattleLogDrawer();
+}
+
+void MainGamePage::refreshBattleLogDrawer()
+{
+    const bool isBattlePhase = gameManager && gameManager->phase() == GamePhase::Battle;
+    if (!isBattlePhase) {
+        battleLogToggleButton->hide();
+        battleLogPanel->hide();
+        return;
+    }
+
+    battleLogToggleButton->setText(battleLogExpanded
+                                       ? QStringLiteral("▼ 收起战斗动态")
+                                       : QStringLiteral("▲ 战斗动态"));
+    battleLogPanel->setVisible(battleLogExpanded);
+    if (!battleLogExpanded) {
+        return;
+    }
+
+    battleLogLabel->setText(!gameManager->battleLog().isEmpty()
+                                ? gameManager->battleLog().join(QStringLiteral("\n"))
+                                : QStringLiteral("战斗进行中，暂无可查看动态。"));
 }
 
 void MainGamePage::paintEvent(QPaintEvent *event)

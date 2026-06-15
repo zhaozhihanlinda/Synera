@@ -43,6 +43,7 @@ private:
     void showDeployWarning(const QString &message);
     QString deployFailureMessageForBench(int slot, const BoardPosition &position) const;
     void tickBattleTimer();
+    void refreshBattleLogDrawer();
 
     GameManager *gameManager;
     int selectedBenchSlot;
@@ -66,6 +67,7 @@ private:
     QLabel *selectedStatsLabel;
     QLabel *selectedTraitsLabel;
     QLabel *deployWarningLabel;
+    QPushButton *battleLogToggleButton;
     QFrame *battleLogPanel;
     QLabel *battleLogLabel;
     QPushButton *actionButton;
@@ -77,6 +79,7 @@ private:
     QFrame *deployPanel;
     QFrame *unitInfoPanel;
     BattleInfoPanel *battleInfoPanel;
+    bool battleLogExpanded;
 };
 
 #endif // MAINGAMEPAGE_H

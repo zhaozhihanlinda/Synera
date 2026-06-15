@@ -36,7 +36,7 @@ QFrame *createInfoTile(const QString &labelText, QLabel *valueLabel, QWidget *pa
 
 QFrame *createShopCard(const UnitTemplate &unitTemplate,
                        bool canBuy,
-                       bool canSell,
+                       bool canCancelPurchase,
                        QWidget *parent,
                        const QObject *receiver)
 {
@@ -65,16 +65,16 @@ QFrame *createShopCard(const UnitTemplate &unitTemplate,
     buyButton->setEnabled(canBuy);
     buyButton->setCursor(canBuy ? Qt::PointingHandCursor : Qt::ForbiddenCursor);
     buyButton->setMinimumHeight(UiScale::height(42));
-    auto *sellButton = new QPushButton(QStringLiteral("出售"), card);
-    sellButton->setObjectName("cancelBuyButton");
-    sellButton->setEnabled(canSell);
-    sellButton->setCursor(canSell ? Qt::PointingHandCursor : Qt::ForbiddenCursor);
-    sellButton->setMinimumHeight(UiScale::height(42));
+    auto *cancelButton = new QPushButton(QStringLiteral("取消购买"), card);
+    cancelButton->setObjectName("cancelBuyButton");
+    cancelButton->setEnabled(canCancelPurchase);
+    cancelButton->setCursor(canCancelPurchase ? Qt::PointingHandCursor : Qt::ForbiddenCursor);
+    cancelButton->setMinimumHeight(UiScale::height(42));
 
     auto *buttonRow = new QHBoxLayout;
     buttonRow->setSpacing(UiScale::scaled(10));
     buttonRow->addWidget(buyButton);
-    buttonRow->addWidget(sellButton);
+    buttonRow->addWidget(cancelButton);
 
     layout->addWidget(nameLabel);
     layout->addWidget(costLabel);
@@ -89,14 +89,19 @@ QFrame *createShopCard(const UnitTemplate &unitTemplate,
             emit const_cast<ShopPage *>(shopPage)->buyUnitClicked(unitTemplate.templateId);
         }
     });
-    QObject::connect(sellButton, &QPushButton::clicked, receiver, [receiver, unitTemplate]() {
+    QObject::connect(cancelButton, &QPushButton::clicked, receiver, [receiver, unitTemplate]() {
         auto *shopPage = qobject_cast<const ShopPage *>(receiver);
         if (shopPage) {
-            emit const_cast<ShopPage *>(shopPage)->sellUnitClicked(unitTemplate.templateId);
+            emit const_cast<ShopPage *>(shopPage)->cancelPurchaseClicked(unitTemplate.templateId);
         }
     });
 
     return card;
+}
+
+int sellRefundForUnit(const UnitPtr &unit)
+{
+    return unit ? (unit->cost() * 60 + 50) / 100 : 0;
 }
 
 }
@@ -154,14 +159,14 @@ ShopPage::ShopPage(QWidget *parent)
     shopTitle->setObjectName("panelTitle");
 
     shopRuleLabel = new QLabel(
-        QStringLiteral("商店每轮首次进入会免费刷新 5 个角色槽位。手动刷新消耗 1 金币；备战区满时不能购买，但仍可刷新。"),
+        QStringLiteral("商店每轮首次进入会免费刷新 5 个角色槽位。手动刷新消耗 3 金币；取消本轮购买返还全价，出售已拥有购买单位返还 60%。"),
         shopPanel);
     shopRuleLabel->setObjectName("hintText");
     shopRuleLabel->setWordWrap(true);
 
     auto *shopActionRow = new QHBoxLayout;
     shopActionRow->setSpacing(UiScale::scaled(12));
-    refreshShopButton = new QPushButton(QStringLiteral("刷新商店 -1 金币"), shopPanel);
+    refreshShopButton = new QPushButton(QStringLiteral("刷新商店 -3 金币"), shopPanel);
     refreshShopButton->setObjectName("secondaryButton");
     refreshShopButton->setCursor(Qt::PointingHandCursor);
     refreshShopButton->setMinimumHeight(UiScale::height(46));
@@ -407,8 +412,8 @@ void ShopPage::populateShopCards()
         }
 
         const bool canBuy = currentGold >= unitTemplate.cost && ownedUnits.size() < ownedUnitCapacity;
-        const bool canSell = sellableTemplateIds.contains(unitTemplate.templateId);
-        shopCardsLayout->addWidget(createShopCard(unitTemplate, canBuy, canSell, this, this), 0, index);
+        const bool canCancelPurchase = cancellableTemplateIds.contains(unitTemplate.templateId);
+        shopCardsLayout->addWidget(createShopCard(unitTemplate, canBuy, canCancelPurchase, this, this), 0, index);
     }
 }
 
@@ -418,7 +423,8 @@ void ShopPage::setGameInfo(int round,
                            int maxPopulation,
                            const QVector<UnitPtr> &units,
                            int capacity,
-                           const QVector<QString> &sellableIds,
+                           const QVector<QString> &cancellableIds,
+                           const QVector<QString> &unitIdsForSale,
                            const QVector<QString> &shopTemplateIds,
                            int refreshCost,
                            bool canRefreshShop)
@@ -429,7 +435,8 @@ void ShopPage::setGameInfo(int round,
     currentGold = gold;
     ownedUnits = units;
     ownedUnitCapacity = capacity;
-    sellableTemplateIds = sellableIds;
+    cancellableTemplateIds = cancellableIds;
+    sellableUnitIds = unitIdsForSale;
     currentShopTemplateIds = shopTemplateIds;
     currentRefreshCost = refreshCost;
     currentCanRefreshShop = canRefreshShop;
@@ -439,7 +446,7 @@ void ShopPage::setGameInfo(int round,
         refreshShopButton->setCursor(currentCanRefreshShop ? Qt::PointingHandCursor : Qt::ForbiddenCursor);
     }
     if (shopRuleLabel) {
-        shopRuleLabel->setText(QStringLiteral("商店每轮首次进入会免费刷新 5 个角色槽位。手动刷新消耗 %1 金币；备战区满时不能购买，但仍可刷新。")
+        shopRuleLabel->setText(QStringLiteral("商店每轮首次进入会免费刷新 5 个角色槽位。手动刷新消耗 %1 金币；取消本轮购买返还全价，出售已拥有购买单位返还 60%。")
                                    .arg(currentRefreshCost));
     }
     refreshOwnedUnits();
@@ -462,13 +469,36 @@ void ShopPage::refreshOwnedUnits()
 
     for (int index = 0; index < ownedUnits.size(); ++index) {
         const UnitPtr unit = ownedUnits.at(index);
-        auto *unitButton = new QPushButton(unit ? unit->name() : QStringLiteral("-"), this);
+        auto *rowWidget = new QWidget(this);
+        auto *rowLayout = new QHBoxLayout(rowWidget);
+        rowLayout->setContentsMargins(UiScale::margins(0, 0, 0, 0));
+        rowLayout->setSpacing(UiScale::scaled(8));
+
+        auto *unitButton = new QPushButton(unit ? unit->name() : QStringLiteral("-"), rowWidget);
         unitButton->setObjectName("ownedUnitButton");
         unitButton->setCursor(Qt::PointingHandCursor);
         unitButton->setMinimumHeight(UiScale::height(52));
-        ownedUnitsLayout->addWidget(unitButton, index / 4, index % 4);
+        rowLayout->addWidget(unitButton, 1);
+
+        const bool canSell = unit && sellableUnitIds.contains(unit->id());
+        auto *sellButton = new QPushButton(canSell
+                                               ? QStringLiteral("出售 +%1").arg(sellRefundForUnit(unit))
+                                               : QStringLiteral("不可出售"),
+                                           rowWidget);
+        sellButton->setObjectName("cancelBuyButton");
+        sellButton->setEnabled(canSell);
+        sellButton->setCursor(canSell ? Qt::PointingHandCursor : Qt::ForbiddenCursor);
+        sellButton->setMinimumHeight(UiScale::height(52));
+        rowLayout->addWidget(sellButton);
+
+        ownedUnitsLayout->addWidget(rowWidget, index / 2, index % 2);
         connect(unitButton, &QPushButton::clicked, this, [this, unit]() {
             showOwnedUnitDetail(unit);
+        });
+        connect(sellButton, &QPushButton::clicked, this, [this, unit]() {
+            if (unit) {
+                emit sellUnitClicked(unit->id());
+            }
         });
     }
 }

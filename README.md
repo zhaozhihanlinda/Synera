@@ -61,8 +61,9 @@ Widgets.
 - Rounds: one run contains 5 rounds.
 - Population: player population grows by round from 3 to 7.
 - Player HP: starts at 100 and does not recover automatically.
-- Shop: shows 5 random unit slots, supports 1-gold refresh, and deducts/refunds
-  gold through `GameManager`.
+- Shop: shows 5 random unit slots, supports 3-gold refresh, lets the player
+  cancel current-round purchases for a full refund, and sells owned purchased
+  units for 60% of their cost through `GameManager`.
 - Enemy encounters: fixed formations are grouped by round and style, with enemy
   unit count and stats increasing by round.
 - Battle: currently uses a minimal tick-based automatic simulation. Units choose
@@ -77,8 +78,8 @@ Widgets.
   round.
 - Battle settlement: normal results use the actual living units after battle;
   timeout settlement falls back to temporary combat-power comparison.
-- Battle feedback: the battle page shows recent movement, attack, and defeat
-  log entries.
+- Battle feedback: recent movement, attack, and defeat log entries are hidden
+  behind an expandable battle-dynamics drawer during battle.
 - Settlement: wins grant the current temporary round rewards; losses grant a
   small reward and deduct round-based HP.
 

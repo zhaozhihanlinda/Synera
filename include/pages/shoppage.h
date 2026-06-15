@@ -26,7 +26,8 @@ public:
                      int maxPopulation,
                      const QVector<UnitPtr> &ownedUnits,
                      int ownedUnitCapacity,
-                     const QVector<QString> &sellableTemplateIds,
+                     const QVector<QString> &cancellableTemplateIds,
+                     const QVector<QString> &sellableUnitIds,
                      const QVector<QString> &shopTemplateIds,
                      int refreshCost,
                      bool canRefreshShop);
@@ -34,7 +35,8 @@ public:
 signals:
     void enterDeployClicked();
     void buyUnitClicked(const QString &templateId);
-    void sellUnitClicked(const QString &templateId);
+    void cancelPurchaseClicked(const QString &templateId);
+    void sellUnitClicked(const QString &unitId);
     void refreshShopClicked();
 
 protected:
@@ -54,7 +56,8 @@ private:
     QVector<UnitPtr> ownedUnits;
     int currentGold;
     int ownedUnitCapacity;
-    QVector<QString> sellableTemplateIds;
+    QVector<QString> cancellableTemplateIds;
+    QVector<QString> sellableUnitIds;
     QVector<QString> currentShopTemplateIds;
     int currentRefreshCost;
     bool currentCanRefreshShop;

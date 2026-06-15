@@ -44,8 +44,12 @@ public:
     bool canBuyUnit(const QString &templateId) const;
     bool buyUnit(const QString &templateId);
     bool canSellUnit(const QString &templateId) const;
-    bool sellUnit(const QString &templateId);
+    bool canCancelPurchasedUnit(const QString &templateId) const;
+    bool cancelPurchasedUnit(const QString &templateId);
     QVector<QString> sellableUnitTemplateIds() const;
+    QVector<QString> sellableUnitIds() const;
+    bool canSellUnitById(const QString &unitId) const;
+    bool sellUnitById(const QString &unitId);
     QVector<QString> currentShopTemplateIds() const;
     int shopRefreshCost() const;
     bool canRefreshShop() const;
@@ -84,6 +88,7 @@ private:
     {
         QString templateId;
         QString unitId;
+        int round = 0;
     };
 
     struct PlayerBattleSnapshot

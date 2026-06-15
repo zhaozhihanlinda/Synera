@@ -56,6 +56,7 @@ private:
     void prepareMainGamePage();
     void prepareRoundResultPage();
     void startNewSession();
+    void showCurrentEnemyPreview();
     void tickBattleSimulation();
     void resolveBattleAndShowResult();
 };

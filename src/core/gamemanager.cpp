@@ -57,7 +57,12 @@ int maxPopulationForRound(int round)
 }
 
 constexpr int kShopSlotCount = 5;
-constexpr int kShopRefreshCost = 1;
+constexpr int kShopRefreshCost = 3;
+
+int sellRefundForCost(int cost)
+{
+    return (cost * 60 + 50) / 100;
+}
 
 }
 
@@ -208,12 +213,17 @@ bool GameManager::buyUnit(const QString &templateId)
         return false;
     }
 
-    m_purchasedUnits.append({unitTemplate.templateId, instanceId});
+    m_purchasedUnits.append({unitTemplate.templateId, instanceId, m_roundState.currentRound});
     m_playerGold -= unitTemplate.cost;
     return true;
 }
 
 bool GameManager::canSellUnit(const QString &templateId) const
+{
+    return canCancelPurchasedUnit(templateId);
+}
+
+bool GameManager::canCancelPurchasedUnit(const QString &templateId) const
 {
     const UnitTemplate unitTemplate = playerUnitTemplateById(templateId);
     if (unitTemplate.templateId.isEmpty()) {
@@ -221,53 +231,100 @@ bool GameManager::canSellUnit(const QString &templateId) const
     }
 
     for (const PurchasedUnitRecord &record : m_purchasedUnits) {
-        if (record.templateId == templateId) {
+        if (record.templateId == templateId && record.round == m_roundState.currentRound) {
             return true;
         }
     }
     return false;
 }
 
-bool GameManager::sellUnit(const QString &templateId)
+bool GameManager::cancelPurchasedUnit(const QString &templateId)
 {
-    if (!canSellUnit(templateId)) {
+    if (!canCancelPurchasedUnit(templateId)) {
         return false;
     }
 
     const UnitTemplate unitTemplate = playerUnitTemplateById(templateId);
-    QString unitIdToRemove;
-
     for (const PurchasedUnitRecord &record : m_purchasedUnits) {
-        if (record.templateId == templateId) {
-            unitIdToRemove = record.unitId;
-            break;
+        if (record.templateId == templateId && record.round == m_roundState.currentRound) {
+            if (!removePlayerUnitById(record.unitId)) {
+                return false;
+            }
+            for (int index = 0; index < m_purchasedUnits.size(); ++index) {
+                if (m_purchasedUnits.at(index).unitId == record.unitId) {
+                    m_purchasedUnits.removeAt(index);
+                    break;
+                }
+            }
+            m_playerGold += unitTemplate.cost;
+            return true;
         }
     }
 
-    if (unitIdToRemove.isEmpty() || !removePlayerUnitById(unitIdToRemove)) {
-        return false;
-    }
-
-    for (int index = 0; index < m_purchasedUnits.size(); ++index) {
-        if (m_purchasedUnits.at(index).unitId == unitIdToRemove) {
-            m_purchasedUnits.removeAt(index);
-            break;
-        }
-    }
-
-    m_playerGold += unitTemplate.cost;
-    return true;
+    return false;
 }
 
 QVector<QString> GameManager::sellableUnitTemplateIds() const
 {
     QVector<QString> templateIds;
     for (const UnitTemplate &unitTemplate : allPlayerUnitTemplates()) {
-        if (canSellUnit(unitTemplate.templateId)) {
+        if (canCancelPurchasedUnit(unitTemplate.templateId)) {
             templateIds.append(unitTemplate.templateId);
         }
     }
     return templateIds;
+}
+
+QVector<QString> GameManager::sellableUnitIds() const
+{
+    QVector<QString> unitIds;
+    for (const PurchasedUnitRecord &record : m_purchasedUnits) {
+        if (record.round < m_roundState.currentRound && canSellUnitById(record.unitId)) {
+            unitIds.append(record.unitId);
+        }
+    }
+    return unitIds;
+}
+
+bool GameManager::canSellUnitById(const QString &unitId) const
+{
+    if (unitId.isEmpty()) {
+        return false;
+    }
+
+    for (const PurchasedUnitRecord &record : m_purchasedUnits) {
+        if (record.unitId == unitId && record.round < m_roundState.currentRound) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool GameManager::sellUnitById(const QString &unitId)
+{
+    if (!canSellUnitById(unitId)) {
+        return false;
+    }
+
+    QString templateId;
+    for (int index = 0; index < m_purchasedUnits.size(); ++index) {
+        if (m_purchasedUnits.at(index).unitId == unitId) {
+            templateId = m_purchasedUnits.at(index).templateId;
+            if (!removePlayerUnitById(unitId)) {
+                return false;
+            }
+            m_purchasedUnits.removeAt(index);
+            break;
+        }
+    }
+
+    const UnitTemplate unitTemplate = playerUnitTemplateById(templateId);
+    if (unitTemplate.templateId.isEmpty()) {
+        return false;
+    }
+
+    m_playerGold += sellRefundForCost(unitTemplate.cost);
+    return true;
 }
 
 QVector<QString> GameManager::currentShopTemplateIds() const
