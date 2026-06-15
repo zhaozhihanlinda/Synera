@@ -2,7 +2,9 @@
 #define GAMEMANAGER_H
 
 #include <QObject>
+#include <QHash>
 #include <QString>
+#include <QStringList>
 #include <QVector>
 
 #include "core/board.h"
@@ -60,6 +62,7 @@ public:
     void tickBattleTimer();
     void advanceBattleSimulationTick();
     bool isBattleResolved() const;
+    QStringList battleLog() const;
 
     BattleResult calculateBattleResult();
     void saveBattleResult(const BattleResult &result);
@@ -82,12 +85,28 @@ private:
         QString unitId;
     };
 
+    struct PlayerBattleSnapshot
+    {
+        UnitPtr unit;
+        BoardPosition position;
+        int hp = 0;
+        int mana = 0;
+        UnitState state = UnitState::Idle;
+    };
+
     void clearEnemyUnits();
     void loadCurrentEncounterFormation();
+    void capturePlayerBattleSnapshot();
+    void restorePlayerBattleSnapshot();
+    void clearPlayerUnitsFromBoard();
+    bool canUnitAttackThisTick(const UnitPtr &unit);
+    void resetUnitAttackCooldown(const UnitPtr &unit);
+    void appendBattleLog(const QString &message);
     void ensureShopForCurrentRound();
     QVector<QString> generateShopTemplateIds() const;
     QVector<UnitPtr> activeUnitsForSide(ControllerSide side) const;
     UnitPtr nearestLivingTarget(const UnitPtr &attacker, const QVector<UnitPtr> &targets) const;
+    BoardPosition nextBattleStepTowardTarget(const UnitPtr &unit, const UnitPtr &target) const;
     void moveUnitTowardTarget(const UnitPtr &unit, const UnitPtr &target);
     void removeDeadUnits();
     int combatPowerForSide(ControllerSide side) const;
@@ -103,6 +122,9 @@ private:
     BattleResult m_lastBattleResult;
     QVector<PurchasedUnitRecord> m_purchasedUnits;
     QVector<QString> m_shopTemplateIds;
+    QVector<PlayerBattleSnapshot> m_playerBattleSnapshots;
+    QHash<QString, qreal> m_attackCooldowns;
+    QStringList m_battleLog;
     int m_shopRound;
 };
 

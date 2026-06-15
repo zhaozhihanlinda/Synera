@@ -61,6 +61,8 @@ int maxPopulationForRound(int round)
 
 constexpr int kShopSlotCount = 5;
 constexpr int kShopRefreshCost = 1;
+constexpr qreal kBattleTickSeconds = 1.0;
+constexpr int kMaxBattleLogEntries = 5;
 int distanceBetween(const BoardPosition &first, const BoardPosition &second)
 {
     return std::abs(first.row - second.row) + std::abs(first.col - second.col);
@@ -100,6 +102,9 @@ void GameManager::initNewGame()
     m_lastBattleResult = BattleResult{};
     m_purchasedUnits.clear();
     m_shopTemplateIds.clear();
+    m_playerBattleSnapshots.clear();
+    m_attackCooldowns.clear();
+    m_battleLog.clear();
     m_shopRound = 0;
     drawCurrentRoundEncounter();
 
@@ -421,6 +426,10 @@ bool GameManager::repositionUnit(const BoardPosition &from, const BoardPosition 
 
 void GameManager::beginBattlePhase()
 {
+    capturePlayerBattleSnapshot();
+    m_attackCooldowns.clear();
+    m_battleLog.clear();
+    appendBattleLog(QStringLiteral("战斗开始，双方单位自动行动。"));
     m_roundState.beginBattlePhase();
 }
 
@@ -447,10 +456,18 @@ void GameManager::advanceBattleSimulationTick()
             continue;
         }
         if (distanceBetween(unit->boardPosition(), target->boardPosition()) <= unit->range()) {
-            unit->setState(UnitState::Attacking);
-            target->applyDamage(unit->atk());
-            unit->gainMana(unit->manaGainOnAttack());
-            target->gainMana(target->manaGainOnHit());
+            if (canUnitAttackThisTick(unit)) {
+                unit->setState(UnitState::Attacking);
+                target->applyDamage(unit->atk());
+                unit->gainMana(unit->manaGainOnAttack());
+                target->gainMana(target->manaGainOnHit());
+                appendBattleLog(QStringLiteral("%1 攻击 %2，造成 %3 伤害。")
+                                    .arg(unit->name(), target->name())
+                                    .arg(unit->atk()));
+                resetUnitAttackCooldown(unit);
+            } else {
+                unit->setState(UnitState::Idle);
+            }
         } else {
             moveUnitTowardTarget(unit, target);
         }
@@ -468,10 +485,18 @@ void GameManager::advanceBattleSimulationTick()
             continue;
         }
         if (distanceBetween(unit->boardPosition(), target->boardPosition()) <= unit->range()) {
-            unit->setState(UnitState::Attacking);
-            target->applyDamage(unit->atk());
-            unit->gainMana(unit->manaGainOnAttack());
-            target->gainMana(target->manaGainOnHit());
+            if (canUnitAttackThisTick(unit)) {
+                unit->setState(UnitState::Attacking);
+                target->applyDamage(unit->atk());
+                unit->gainMana(unit->manaGainOnAttack());
+                target->gainMana(target->manaGainOnHit());
+                appendBattleLog(QStringLiteral("%1 攻击 %2，造成 %3 伤害。")
+                                    .arg(unit->name(), target->name())
+                                    .arg(unit->atk()));
+                resetUnitAttackCooldown(unit);
+            } else {
+                unit->setState(UnitState::Idle);
+            }
         } else {
             moveUnitTowardTarget(unit, target);
         }
@@ -484,6 +509,11 @@ bool GameManager::isBattleResolved() const
 {
     return activeUnitsForSide(ControllerSide::PlayerCtrl).isEmpty()
         || activeUnitsForSide(ControllerSide::EnemyCtrl).isEmpty();
+}
+
+QStringList GameManager::battleLog() const
+{
+    return m_battleLog;
 }
 
 BattleResult GameManager::calculateBattleResult()
@@ -506,6 +536,10 @@ void GameManager::saveBattleResult(const BattleResult &result)
     if (m_playerHp < 0) {
         m_playerHp = 0;
     }
+    restorePlayerBattleSnapshot();
+    clearEnemyUnits();
+    m_attackCooldowns.clear();
+    m_battleLog.clear();
 }
 
 BattleResult GameManager::lastBattleResult() const
@@ -582,6 +616,83 @@ void GameManager::loadCurrentEncounterFormation()
     }
 }
 
+void GameManager::capturePlayerBattleSnapshot()
+{
+    m_playerBattleSnapshots.clear();
+    for (int row = 0; row < m_board.rowCount(); ++row) {
+        for (int col = 0; col < m_board.columnCount(); ++col) {
+            const UnitPtr unit = m_board.unitAt(row, col);
+            if (unit && unit->owner() == ControllerSide::PlayerCtrl) {
+                m_playerBattleSnapshots.append({unit, {row, col}, unit->hp(), unit->mana(), unit->state()});
+            }
+        }
+    }
+}
+
+void GameManager::restorePlayerBattleSnapshot()
+{
+    if (m_playerBattleSnapshots.isEmpty()) {
+        return;
+    }
+
+    clearPlayerUnitsFromBoard();
+    for (const PlayerBattleSnapshot &snapshot : m_playerBattleSnapshots) {
+        if (!snapshot.unit || !snapshot.position.isValid()) {
+            continue;
+        }
+        snapshot.unit->setHp(snapshot.hp);
+        snapshot.unit->setMana(snapshot.mana);
+        snapshot.unit->setState(snapshot.state);
+        m_board.placeUnit(snapshot.unit, snapshot.position.row, snapshot.position.col);
+    }
+    m_playerBattleSnapshots.clear();
+}
+
+void GameManager::clearPlayerUnitsFromBoard()
+{
+    for (int row = 0; row < m_board.rowCount(); ++row) {
+        for (int col = 0; col < m_board.columnCount(); ++col) {
+            const UnitPtr unit = m_board.unitAt(row, col);
+            if (unit && unit->owner() == ControllerSide::PlayerCtrl) {
+                m_board.removeUnit(row, col);
+            }
+        }
+    }
+}
+
+bool GameManager::canUnitAttackThisTick(const UnitPtr &unit)
+{
+    if (!unit || unit->id().isEmpty()) {
+        return false;
+    }
+
+    const QString unitId = unit->id();
+    const qreal cooldown = std::max<qreal>(0.0, m_attackCooldowns.value(unitId, 0.0) - kBattleTickSeconds);
+    m_attackCooldowns[unitId] = cooldown;
+    return cooldown <= 0.0;
+}
+
+void GameManager::resetUnitAttackCooldown(const UnitPtr &unit)
+{
+    if (!unit || unit->id().isEmpty()) {
+        return;
+    }
+
+    m_attackCooldowns[unit->id()] = 1.0 / unit->attackSpeed();
+}
+
+void GameManager::appendBattleLog(const QString &message)
+{
+    if (message.isEmpty()) {
+        return;
+    }
+
+    m_battleLog.append(message);
+    while (m_battleLog.size() > kMaxBattleLogEntries) {
+        m_battleLog.removeFirst();
+    }
+}
+
 void GameManager::ensureShopForCurrentRound()
 {
     if (m_shopRound == m_roundState.currentRound && m_shopTemplateIds.size() == kShopSlotCount) {
@@ -635,12 +746,72 @@ UnitPtr GameManager::nearestLivingTarget(const UnitPtr &attacker, const QVector<
             continue;
         }
         const int distance = distanceBetween(attacker->boardPosition(), target->boardPosition());
-        if (!bestTarget || distance < bestDistance) {
+        const bool betterTarget = !bestTarget
+            || distance < bestDistance
+            || (distance == bestDistance && target->hp() < bestTarget->hp())
+            || (distance == bestDistance && target->hp() == bestTarget->hp()
+                && target->atk() > bestTarget->atk());
+        if (betterTarget) {
             bestTarget = target;
             bestDistance = distance;
         }
     }
     return bestTarget;
+}
+
+BoardPosition GameManager::nextBattleStepTowardTarget(const UnitPtr &unit, const UnitPtr &target) const
+{
+    if (!unit || !target || !unit->isAlive() || !target->isAlive()) {
+        return {};
+    }
+
+    const BoardPosition start = unit->boardPosition();
+    const BoardPosition targetPosition = target->boardPosition();
+    if (!m_board.isInside(start.row, start.col)
+        || !m_board.isInside(targetPosition.row, targetPosition.col)) {
+        return {};
+    }
+
+    QVector<QVector<bool>> visited(m_board.rowCount(), QVector<bool>(m_board.columnCount(), false));
+    QVector<QVector<BoardPosition>> parent(m_board.rowCount(),
+                                           QVector<BoardPosition>(m_board.columnCount(), BoardPosition{}));
+    QVector<BoardPosition> queue;
+    queue.append(start);
+    visited[start.row][start.col] = true;
+
+    const QVector<BoardPosition> directions = {
+        {1, 0},
+        {-1, 0},
+        {0, 1},
+        {0, -1}
+    };
+
+    for (int head = 0; head < queue.size(); ++head) {
+        const BoardPosition current = queue.at(head);
+        if (current != start && distanceBetween(current, targetPosition) <= unit->range()) {
+            BoardPosition step = current;
+            while (parent[step.row][step.col] != start) {
+                step = parent[step.row][step.col];
+            }
+            return step;
+        }
+
+        for (const BoardPosition &direction : directions) {
+            const BoardPosition next{current.row + direction.row, current.col + direction.col};
+            if (!m_board.isInside(next.row, next.col) || visited[next.row][next.col]) {
+                continue;
+            }
+            if (m_board.isOccupied(next.row, next.col)) {
+                continue;
+            }
+
+            visited[next.row][next.col] = true;
+            parent[next.row][next.col] = current;
+            queue.append(next);
+        }
+    }
+
+    return {};
 }
 
 void GameManager::moveUnitTowardTarget(const UnitPtr &unit, const UnitPtr &target)
@@ -650,21 +821,11 @@ void GameManager::moveUnitTowardTarget(const UnitPtr &unit, const UnitPtr &targe
     }
 
     const BoardPosition from = unit->boardPosition();
-    const BoardPosition to = target->boardPosition();
-    const int rowStep = to.row == from.row ? 0 : (to.row > from.row ? 1 : -1);
-    const int colStep = to.col == from.col ? 0 : (to.col > from.col ? 1 : -1);
-
-    const QVector<BoardPosition> candidates = {
-        {from.row + rowStep, from.col},
-        {from.row, from.col + colStep},
-        {from.row + rowStep, from.col + colStep}
-    };
-
-    for (const BoardPosition &candidate : candidates) {
-        if (m_board.moveUnitDuringBattle(from.row, from.col, candidate.row, candidate.col)) {
-            unit->setState(UnitState::Moving);
-            return;
-        }
+    const BoardPosition next = nextBattleStepTowardTarget(unit, target);
+    if (next.isValid() && m_board.moveUnitDuringBattle(from.row, from.col, next.row, next.col)) {
+        unit->setState(UnitState::Moving);
+        appendBattleLog(QStringLiteral("%1 向 %2 移动。").arg(unit->name(), target->name()));
+        return;
     }
 
     unit->setState(UnitState::Idle);
@@ -676,6 +837,7 @@ void GameManager::removeDeadUnits()
         for (int col = 0; col < m_board.columnCount(); ++col) {
             const UnitPtr unit = m_board.unitAt(row, col);
             if (unit && !unit->isAlive()) {
+                appendBattleLog(QStringLiteral("%1 被击败。").arg(unit->name()));
                 m_board.removeUnit(row, col);
             }
         }

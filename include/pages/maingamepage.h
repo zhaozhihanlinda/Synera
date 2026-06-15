@@ -66,6 +66,8 @@ private:
     QLabel *selectedStatsLabel;
     QLabel *selectedTraitsLabel;
     QLabel *deployWarningLabel;
+    QFrame *battleLogPanel;
+    QLabel *battleLogLabel;
     QPushButton *actionButton;
     QPushButton *returnShopButton;
     QTimer *battleTimer;

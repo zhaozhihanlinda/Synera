@@ -89,6 +89,8 @@ MainGamePage::MainGamePage(QWidget *parent)
     , selectedStatsLabel(new QLabel(QStringLiteral("点击棋盘单位以查看属性"), this))
     , selectedTraitsLabel(new QLabel(QStringLiteral("Traits: -"), this))
     , deployWarningLabel(new QLabel(this))
+    , battleLogPanel(nullptr)
+    , battleLogLabel(nullptr)
     , actionButton(nullptr)
     , returnShopButton(nullptr)
     , battleTimer(new QTimer(this))
@@ -188,6 +190,20 @@ MainGamePage::MainGamePage(QWidget *parent)
     sidePanel->addWidget(unitInfoPanel, 1);
     battlefieldRow->addWidget(sidePanelWidget, 1);
 
+    battleLogPanel = new QFrame(this);
+    battleLogPanel->setObjectName("battleLogPanel");
+    battleLogPanel->hide();
+    auto *battleLogLayout = new QVBoxLayout(battleLogPanel);
+    battleLogLayout->setContentsMargins(UiScale::margins(22, 16, 22, 16));
+    battleLogLayout->setSpacing(UiScale::scaled(8));
+    auto *battleLogTitle = new QLabel(QStringLiteral("战斗动态"), battleLogPanel);
+    battleLogTitle->setObjectName("panelTitle");
+    battleLogLabel = new QLabel(QStringLiteral("战斗开始后显示最近行动。"), battleLogPanel);
+    battleLogLabel->setObjectName("panelBody");
+    battleLogLabel->setWordWrap(true);
+    battleLogLayout->addWidget(battleLogTitle);
+    battleLogLayout->addWidget(battleLogLabel);
+
     battleInfoPanel = new BattleInfoPanel(this);
 
     deployPanel = new QFrame(this);
@@ -205,6 +221,7 @@ MainGamePage::MainGamePage(QWidget *parent)
 
     rootLayout->addLayout(headerRow);
     rootLayout->addLayout(battlefieldRow, 1);
+    rootLayout->addWidget(battleLogPanel);
     rootLayout->addWidget(battleInfoPanel);
     rootLayout->addWidget(deployPanel);
 
@@ -215,7 +232,7 @@ MainGamePage::MainGamePage(QWidget *parent)
             font-size: 38px;
             font-weight: 800;
         }
-        #infoTile, #phasePanel, #unitInfoPanel, #deployPanel, #battleInfoPanel {
+        #infoTile, #phasePanel, #unitInfoPanel, #deployPanel, #battleInfoPanel, #battleLogPanel {
             background-color: rgba(10, 16, 28, 215);
             border: 2px solid rgba(174, 150, 98, 180);
             border-radius: 22px;
@@ -439,6 +456,7 @@ void MainGamePage::refreshPhaseUi()
         actionButton->show();
         returnShopButton->show();
         deployPanel->show();
+        battleLogPanel->hide();
         if (gameManager && gameManager->currentPopulation() == 0) {
             deployWarningLabel->setText(QStringLiteral("至少部署 1 个单位后才能开始战斗。"));
             deployWarningLabel->show();
@@ -467,6 +485,10 @@ void MainGamePage::refreshPhaseUi()
         actionButton->show();
         returnShopButton->hide();
         deployPanel->hide();
+        battleLogPanel->show();
+        battleLogLabel->setText(gameManager && !gameManager->battleLog().isEmpty()
+                                    ? gameManager->battleLog().join(QStringLiteral("\n"))
+                                    : QStringLiteral("战斗进行中，等待单位行动。"));
         if (gameManager && !battleTimer->isActive()) {
             battleTimer->start();
         }
