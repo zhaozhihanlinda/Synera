@@ -9,8 +9,8 @@ combat depth.
 From the project root:
 
 ```sh
-cmake --build build
-build/Synera.app/Contents/MacOS/Synera
+cmake --build build/Qt_6_11_1_for_macOS-Debug
+build/Qt_6_11_1_for_macOS-Debug/Synera.app/Contents/MacOS/Synera
 ```
 
 The project is configured through `CMakeLists.txt` and links against Qt
@@ -28,8 +28,9 @@ Widgets.
 ## Core Classes
 
 - `GameManager`: owns the current game state, player resources, board, round
-  state, shop buy/sell behavior, minimal automatic battle simulation, and
-  settlement.
+  state, shop buy/sell behavior, battle phase lifecycle, and settlement.
+- `BattleSimulator`: owns tick-based battle simulation, including target
+  selection, BFS movement, attack cooldowns, defeat removal, and battle logs.
 - `Board`: owns the 8 x 8 grid and 8-slot bench, including deployment-side
   restrictions and board/bench movement.
 - `Unit` and `UnitTemplate`: represent unit runtime data and static unit design
@@ -58,13 +59,22 @@ Widgets.
 - Deployment: player units can only be deployed on the player half; enemy units
   are loaded into the enemy half by the selected encounter.
 - Rounds: one run contains 5 rounds.
+- Population: player population grows by round from 3 to 7.
 - Player HP: starts at 100 and does not recover automatically.
-- Shop: uses the current static player unit template list and deducts/refunds
+- Shop: shows 5 random unit slots, supports 1-gold refresh, and deducts/refunds
   gold through `GameManager`.
-- Enemy encounters: temporary fixed formations are grouped by round and style.
+- Enemy encounters: fixed formations are grouped by round and style, with enemy
+  unit count and stats increasing by round.
 - Battle: currently uses a minimal tick-based automatic simulation. Units choose
-  the nearest living enemy, attack when in range, move one tile toward the target
-  when out of range, and are removed from the board when defeated.
+  targets by distance, then lower HP, then higher ATK. Units attack when in
+  range, use BFS to move one tile toward a reachable attack position when out of
+  range, apply attack-speed cooldowns, and are removed from the board when
+  defeated.
+- Battle state: player units are restored to their pre-battle HP, mana, state,
+  and positions after settlement, while enemy units are cleared before the next
+  round.
+- Battle feedback: the battle page shows recent movement, attack, and defeat
+  log entries.
 - Settlement: wins grant the current temporary round rewards; losses grant a
   small reward and deduct round-based HP.
 
@@ -128,4 +138,4 @@ The current player unit templates may already contain static fields for:
 These fields are intentionally reserved so the design data is not lost, but they do not enable any gameplay systems yet.
 
 - skill casting behavior or skill resolution
-- advanced targeting AI, projectiles, pathfinding, or animation timing
+- advanced targeting AI, projectiles, animation timing, or full combat AI

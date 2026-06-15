@@ -38,6 +38,8 @@ set(PROJECT_SOURCES
         include/pages/defeatpage.h
         src/core/gamemanager.cpp
         include/core/gamemanager.h
+        src/core/battlesimulator.cpp
+        include/core/battlesimulator.h
         src/core/board.cpp
         include/core/board.h
         src/core/enemyencounterinfo.cpp

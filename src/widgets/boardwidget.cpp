@@ -293,14 +293,14 @@ void BoardWidget::paintEvent(QPaintEvent *event)
 
 void BoardWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    const BoardPosition pos = boardPositionAt(event->pos());
+    const BoardPosition pos = boardPositionAt(event->position().toPoint());
     if (pos != m_hoveredPosition) {
         m_hoveredPosition = pos;
         update();
     }
 
     if ((event->buttons() & Qt::LeftButton) && m_board && m_pressedPosition.isValid()
-        && (event->pos() - m_dragStartPos).manhattanLength() >= QApplication::startDragDistance()) {
+        && (event->position().toPoint() - m_dragStartPos).manhattanLength() >= QApplication::startDragDistance()) {
         const UnitPtr unit = m_board->unitAt(m_pressedPosition.row, m_pressedPosition.col);
         if (unit && unit->owner() == ControllerSide::PlayerCtrl) {
             auto *mimeData = new QMimeData;
@@ -348,9 +348,9 @@ void BoardWidget::mousePressEvent(QMouseEvent *event)
         return;
     }
 
-    const BoardPosition pos = boardPositionAt(event->pos());
+    const BoardPosition pos = boardPositionAt(event->position().toPoint());
     if (event->button() == Qt::LeftButton) {
-        m_dragStartPos = event->pos();
+        m_dragStartPos = event->position().toPoint();
         m_pressedPosition = pos;
     }
     const UnitPtr pressedUnit = pos.isValid() ? m_board->unitAt(pos.row, pos.col) : nullptr;
@@ -385,7 +385,7 @@ void BoardWidget::dragEnterEvent(QDragEnterEvent *event)
 
 void BoardWidget::dragMoveEvent(QDragMoveEvent *event)
 {
-    m_hoveredPosition = boardPositionAt(event->pos());
+    m_hoveredPosition = boardPositionAt(event->position().toPoint());
     syncDragPreviewFromMime(event->mimeData());
     if (m_hoveredPosition.isValid()
         && (event->mimeData()->hasFormat(kBenchDragMime) || event->mimeData()->hasFormat(kBoardDragMime))) {
@@ -406,7 +406,7 @@ void BoardWidget::dragLeaveEvent(QDragLeaveEvent *event)
 
 void BoardWidget::dropEvent(QDropEvent *event)
 {
-    const BoardPosition target = boardPositionAt(event->pos());
+    const BoardPosition target = boardPositionAt(event->position().toPoint());
     if (!target.isValid()) {
         event->ignore();
         return;

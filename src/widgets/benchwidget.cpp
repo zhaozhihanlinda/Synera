@@ -88,8 +88,8 @@ void BenchWidget::mousePressEvent(QMouseEvent *event)
         return;
     }
 
-    m_dragStartPos = event->pos();
-    m_pressedSlot = slotAt(event->pos());
+    m_dragStartPos = event->position().toPoint();
+    m_pressedSlot = slotAt(event->position().toPoint());
     if (m_pressedSlot >= 0) {
         emit unitPressed(m_board->benchUnitAt(m_pressedSlot));
         emit slotClicked(m_pressedSlot);
@@ -103,7 +103,7 @@ void BenchWidget::mousePressEvent(QMouseEvent *event)
 void BenchWidget::mouseMoveEvent(QMouseEvent *event)
 {
     if (!(event->buttons() & Qt::LeftButton) || !m_board || m_pressedSlot < 0
-        || (event->pos() - m_dragStartPos).manhattanLength() < QApplication::startDragDistance()) {
+        || (event->position().toPoint() - m_dragStartPos).manhattanLength() < QApplication::startDragDistance()) {
         QWidget::mouseMoveEvent(event);
         return;
     }
@@ -152,7 +152,7 @@ void BenchWidget::dragEnterEvent(QDragEnterEvent *event)
 
 void BenchWidget::dragMoveEvent(QDragMoveEvent *event)
 {
-    const int slot = slotAt(event->pos());
+    const int slot = slotAt(event->position().toPoint());
     if (slot >= 0 && event->mimeData()->hasFormat(kBoardDragMime) && !m_board->benchUnitAt(slot)) {
         event->acceptProposedAction();
         return;
@@ -168,7 +168,7 @@ void BenchWidget::dragLeaveEvent(QDragLeaveEvent *event)
 
 void BenchWidget::dropEvent(QDropEvent *event)
 {
-    const int slot = slotAt(event->pos());
+    const int slot = slotAt(event->position().toPoint());
     if (slot < 0 || !m_board || m_board->benchUnitAt(slot) || !event->mimeData()->hasFormat(kBoardDragMime)) {
         event->ignore();
         return;

@@ -2,11 +2,11 @@
 #define GAMEMANAGER_H
 
 #include <QObject>
-#include <QHash>
 #include <QString>
 #include <QStringList>
 #include <QVector>
 
+#include "core/battlesimulator.h"
 #include "core/board.h"
 #include "core/enemyencounterinfo.h"
 #include "core/playerprofile.h"
@@ -99,16 +99,8 @@ private:
     void capturePlayerBattleSnapshot();
     void restorePlayerBattleSnapshot();
     void clearPlayerUnitsFromBoard();
-    bool canUnitAttackThisTick(const UnitPtr &unit);
-    void resetUnitAttackCooldown(const UnitPtr &unit);
-    void appendBattleLog(const QString &message);
     void ensureShopForCurrentRound();
     QVector<QString> generateShopTemplateIds() const;
-    QVector<UnitPtr> activeUnitsForSide(ControllerSide side) const;
-    UnitPtr nearestLivingTarget(const UnitPtr &attacker, const QVector<UnitPtr> &targets) const;
-    BoardPosition nextBattleStepTowardTarget(const UnitPtr &unit, const UnitPtr &target) const;
-    void moveUnitTowardTarget(const UnitPtr &unit, const UnitPtr &target);
-    void removeDeadUnits();
     int combatPowerForSide(ControllerSide side) const;
     bool removePlayerUnitById(const QString &unitId);
 
@@ -123,8 +115,7 @@ private:
     QVector<PurchasedUnitRecord> m_purchasedUnits;
     QVector<QString> m_shopTemplateIds;
     QVector<PlayerBattleSnapshot> m_playerBattleSnapshots;
-    QHash<QString, qreal> m_attackCooldowns;
-    QStringList m_battleLog;
+    BattleSimulator m_battleSimulator;
     int m_shopRound;
 };
 
