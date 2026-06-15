@@ -46,8 +46,6 @@ InitInfoPage::InitInfoPage(QWidget *parent)
     , goldValueLabel(new QLabel(QStringLiteral("30"), this))
     , populationValueLabel(new QLabel(QStringLiteral("3"), this))
     , enterGameButton(nullptr)
-    , rulesOverlay(nullptr)
-    , closeRulesButton(nullptr)
 {
     setAttribute(Qt::WA_StyledBackground, true);
     setMinimumSize(UiScale::size(1280, 820));
@@ -125,53 +123,6 @@ InitInfoPage::InitInfoPage(QWidget *parent)
     rootLayout->addLayout(cardRow);
     rootLayout->addStretch(1);
 
-    rulesOverlay = new QFrame(this);
-    rulesOverlay->setObjectName("rulesOverlay");
-    rulesOverlay->hide();
-
-    auto *overlayLayout = new QVBoxLayout(rulesOverlay);
-    overlayLayout->setContentsMargins(UiScale::margins(0, 0, 0, 0));
-
-    auto *overlayCenter = new QHBoxLayout;
-    overlayCenter->addStretch(1);
-
-    auto *rulesCard = new QFrame(rulesOverlay);
-    rulesCard->setObjectName("rulesCard");
-    rulesCard->setMaximumWidth(UiScale::width(720));
-
-    auto *rulesLayout = new QVBoxLayout(rulesCard);
-    rulesLayout->setContentsMargins(UiScale::margins(30, 28, 30, 24));
-    rulesLayout->setSpacing(UiScale::scaled(14));
-
-    auto *rulesTitle = new QLabel(QStringLiteral("规则说明"), rulesCard);
-    rulesTitle->setObjectName("rulesTitle");
-
-    auto *rulesBody = new QLabel(
-        QStringLiteral("1. 人口代表于当前轮可同时上场的单位数量上限。\n"
-                       "当上场单位数量达到人口上限后，将无法继续部署新的单位。\n\n"
-                       "2. 金币可用于：\n"
-                       "- 购买单位\n"
-                       "- 升级人口\n\n"
-                       "每轮结束后，玩家会获得一定金币奖励。"),
-        rulesCard);
-    rulesBody->setObjectName("rulesBody");
-    rulesBody->setWordWrap(true);
-
-    closeRulesButton = new QPushButton(QStringLiteral("关闭说明"), rulesCard);
-    closeRulesButton->setObjectName("secondaryButton");
-    closeRulesButton->setCursor(Qt::PointingHandCursor);
-    closeRulesButton->setMinimumHeight(UiScale::height(52));
-
-    rulesLayout->addWidget(rulesTitle);
-    rulesLayout->addWidget(rulesBody);
-    rulesLayout->addWidget(closeRulesButton, 0, Qt::AlignRight);
-
-    overlayCenter->addWidget(rulesCard);
-    overlayCenter->addStretch(1);
-    overlayLayout->addStretch(1);
-    overlayLayout->addLayout(overlayCenter);
-    overlayLayout->addStretch(1);
-
     setStyleSheet(UiScale::scaleStyleSheet(QStringLiteral(R"(
         InitInfoPage { background-color: #090d15; }
         #initCard {
@@ -219,26 +170,6 @@ InitInfoPage::InitInfoPage(QWidget *parent)
             border: 1px solid rgba(122, 144, 180, 125);
             border-radius: 18px;
         }
-        #rulesOverlay {
-            background-color: rgba(4, 7, 13, 150);
-            border-radius: 24px;
-        }
-        #rulesCard {
-            background-color: rgba(12, 18, 31, 236);
-            border: 2px solid rgba(178, 151, 98, 205);
-            border-radius: 24px;
-        }
-        #rulesTitle {
-            color: #f1dcaa;
-            font-size: 28px;
-            font-weight: 800;
-        }
-        #rulesBody {
-            color: #dbe4f3;
-            font-size: 17px;
-            font-weight: 500;
-            line-height: 1.45em;
-        }
         #tileLabel {
             color: #92a4bf;
             font-size: 13px;
@@ -276,7 +207,6 @@ InitInfoPage::InitInfoPage(QWidget *parent)
         qDebug() << "Enter game clicked";
         emit enterGameClicked();
     });
-    connect(closeRulesButton, &QPushButton::clicked, rulesOverlay, &QWidget::hide);
 }
 
 void InitInfoPage::setGameInfo(const PlayerProfile &profile,
@@ -313,16 +243,5 @@ void InitInfoPage::paintEvent(QPaintEvent *event)
     }
     for (int y = 0; y < height(); y += gridSize) {
         painter.drawLine(0, y, width(), y);
-    }
-}
-
-void InitInfoPage::showEvent(QShowEvent *event)
-{
-    QWidget::showEvent(event);
-
-    if (rulesOverlay) {
-        rulesOverlay->setGeometry(rect().adjusted(36, 36, -36, -36));
-        rulesOverlay->show();
-        rulesOverlay->raise();
     }
 }

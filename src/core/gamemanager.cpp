@@ -220,17 +220,8 @@ bool GameManager::canSellUnit(const QString &templateId) const
         return false;
     }
 
-    if (m_roundState.currentRound == 1) {
-        for (const PurchasedUnitRecord &record : m_purchasedUnits) {
-            if (record.templateId == templateId) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    for (const UnitPtr &unit : ownedPlayerUnits()) {
-        if (unit && unit->name() == unitTemplate.displayName) {
+    for (const PurchasedUnitRecord &record : m_purchasedUnits) {
+        if (record.templateId == templateId) {
             return true;
         }
     }
@@ -246,19 +237,10 @@ bool GameManager::sellUnit(const QString &templateId)
     const UnitTemplate unitTemplate = playerUnitTemplateById(templateId);
     QString unitIdToRemove;
 
-    if (m_roundState.currentRound == 1) {
-        for (const PurchasedUnitRecord &record : m_purchasedUnits) {
-            if (record.templateId == templateId) {
-                unitIdToRemove = record.unitId;
-                break;
-            }
-        }
-    } else {
-        for (const UnitPtr &unit : ownedPlayerUnits()) {
-            if (unit && unit->name() == unitTemplate.displayName) {
-                unitIdToRemove = unit->id();
-                break;
-            }
+    for (const PurchasedUnitRecord &record : m_purchasedUnits) {
+        if (record.templateId == templateId) {
+            unitIdToRemove = record.unitId;
+            break;
         }
     }
 

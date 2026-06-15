@@ -65,7 +65,7 @@ QFrame *createShopCard(const UnitTemplate &unitTemplate,
     buyButton->setEnabled(canBuy);
     buyButton->setCursor(canBuy ? Qt::PointingHandCursor : Qt::ForbiddenCursor);
     buyButton->setMinimumHeight(UiScale::height(42));
-    auto *sellButton = new QPushButton(QStringLiteral("取消购买"), card);
+    auto *sellButton = new QPushButton(QStringLiteral("出售"), card);
     sellButton->setObjectName("cancelBuyButton");
     sellButton->setEnabled(canSell);
     sellButton->setCursor(canSell ? Qt::PointingHandCursor : Qt::ForbiddenCursor);
@@ -128,13 +128,13 @@ ShopPage::ShopPage(QWidget *parent)
 
     auto *titleLabel = new QLabel(QStringLiteral("商店"), this);
     titleLabel->setObjectName("pageTitle");
-    auto *subtitleLabel = new QLabel(QStringLiteral("Placeholder shop before deployment."), this);
+    auto *subtitleLabel = new QLabel(QStringLiteral("购买或出售角色，然后进入部署阶段。"), this);
     subtitleLabel->setObjectName("pageSubtitle");
 
     auto *statsRow = new QHBoxLayout;
     statsRow->setSpacing(UiScale::scaled(16));
     statsRow->addWidget(createInfoTile(QStringLiteral("玩家金币"), goldValueLabel, this), 1);
-    statsRow->addWidget(createInfoTile(QStringLiteral("玩家最大人口"), populationValueLabel, this), 1);
+    statsRow->addWidget(createInfoTile(QStringLiteral("玩家人口"), populationValueLabel, this), 1);
     statsRow->addWidget(createInfoTile(QStringLiteral("当前回合"), roundValueLabel, this), 1);
 
     auto *shopPanel = new QFrame(this);
@@ -423,10 +423,9 @@ void ShopPage::setGameInfo(int round,
                            int refreshCost,
                            bool canRefreshShop)
 {
-    Q_UNUSED(currentPopulation);
     roundValueLabel->setText(QString::number(round));
     goldValueLabel->setText(QString::number(gold));
-    populationValueLabel->setText(QString::number(maxPopulation));
+    populationValueLabel->setText(QStringLiteral("%1 / %2").arg(currentPopulation).arg(maxPopulation));
     currentGold = gold;
     ownedUnits = units;
     ownedUnitCapacity = capacity;

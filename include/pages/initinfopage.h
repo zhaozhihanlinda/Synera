@@ -26,7 +26,6 @@ signals:
 
 protected:
     void paintEvent(QPaintEvent *event) override;
-    void showEvent(QShowEvent *event) override;
 
 private:
     QLabel *avatarValueLabel;
@@ -35,8 +34,6 @@ private:
     QLabel *goldValueLabel;
     QLabel *populationValueLabel;
     QPushButton *enterGameButton;
-    QFrame *rulesOverlay;
-    QPushButton *closeRulesButton;
 };
 
 #endif // INITINFOPAGE_H
