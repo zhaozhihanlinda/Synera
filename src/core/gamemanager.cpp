@@ -416,6 +416,10 @@ bool GameManager::repositionUnit(const BoardPosition &from, const BoardPosition 
 
 void GameManager::beginBattlePhase()
 {
+    if (!canStartBattle()) {
+        return;
+    }
+
     capturePlayerBattleSnapshot();
     m_battleSimulator.beginBattle();
     m_roundState.beginBattlePhase();
@@ -440,6 +444,13 @@ bool GameManager::isBattleResolved() const
     return m_battleSimulator.isResolved(m_board);
 }
 
+bool GameManager::canStartBattle() const
+{
+    return m_roundState.phase == GamePhase::Deploy
+        && m_board.activePlayerUnitCount() > 0
+        && m_board.activeEnemyUnitCount() > 0;
+}
+
 QStringList GameManager::battleLog() const
 {
     return m_battleSimulator.log();
@@ -448,10 +459,20 @@ QStringList GameManager::battleLog() const
 BattleResult GameManager::calculateBattleResult()
 {
     BattleResult result;
-    const int playerPower = combatPowerForSide(ControllerSide::PlayerCtrl);
-    const int enemyPower = combatPowerForSide(ControllerSide::EnemyCtrl);
+    const BattleOutcome outcome = m_battleSimulator.outcome(m_board);
 
-    result.win = playerPower >= enemyPower;
+    if (outcome.hasLivingPlayerUnits && !outcome.hasLivingEnemyUnits) {
+        result.win = true;
+    } else if (!outcome.hasLivingPlayerUnits && outcome.hasLivingEnemyUnits) {
+        result.win = false;
+    } else if (!outcome.hasLivingPlayerUnits && !outcome.hasLivingEnemyUnits) {
+        result.win = false;
+    } else {
+        const int playerPower = combatPowerForSide(ControllerSide::PlayerCtrl);
+        const int enemyPower = combatPowerForSide(ControllerSide::EnemyCtrl);
+        result.win = playerPower >= enemyPower;
+    }
+
     result.damage = result.win ? 0 : loseDamageForRound(m_roundState.currentRound);
     result.rewardGold = result.win ? winRewardForRound(m_roundState.currentRound) : 5;
     return result;

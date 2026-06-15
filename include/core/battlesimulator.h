@@ -7,6 +7,12 @@
 
 #include "core/board.h"
 
+struct BattleOutcome
+{
+    bool hasLivingPlayerUnits = false;
+    bool hasLivingEnemyUnits = false;
+};
+
 class BattleSimulator
 {
 public:
@@ -14,6 +20,7 @@ public:
     void reset();
     void advanceTick(Board &board);
     bool isResolved(const Board &board) const;
+    BattleOutcome outcome(const Board &board) const;
     QStringList log() const;
 
 private:

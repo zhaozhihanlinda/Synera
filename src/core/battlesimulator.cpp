@@ -99,8 +99,16 @@ void BattleSimulator::advanceTick(Board &board)
 
 bool BattleSimulator::isResolved(const Board &board) const
 {
-    return activeUnitsForSide(board, ControllerSide::PlayerCtrl).isEmpty()
-        || activeUnitsForSide(board, ControllerSide::EnemyCtrl).isEmpty();
+    const BattleOutcome currentOutcome = outcome(board);
+    return !currentOutcome.hasLivingPlayerUnits || !currentOutcome.hasLivingEnemyUnits;
+}
+
+BattleOutcome BattleSimulator::outcome(const Board &board) const
+{
+    BattleOutcome result;
+    result.hasLivingPlayerUnits = !activeUnitsForSide(board, ControllerSide::PlayerCtrl).isEmpty();
+    result.hasLivingEnemyUnits = !activeUnitsForSide(board, ControllerSide::EnemyCtrl).isEmpty();
+    return result;
 }
 
 QStringList BattleSimulator::log() const
@@ -126,7 +134,7 @@ void BattleSimulator::resetUnitAttackCooldown(const UnitPtr &unit)
         return;
     }
 
-    m_attackCooldowns[unit->id()] = 1.0 / unit->attackSpeed();
+    m_attackCooldowns[unit->id()] = 1.0 / std::max<qreal>(0.1, unit->attackSpeed());
 }
 
 void BattleSimulator::appendLog(const QString &message)

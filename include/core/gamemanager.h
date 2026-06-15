@@ -62,6 +62,7 @@ public:
     void tickBattleTimer();
     void advanceBattleSimulationTick();
     bool isBattleResolved() const;
+    bool canStartBattle() const;
     QStringList battleLog() const;
 
     BattleResult calculateBattleResult();

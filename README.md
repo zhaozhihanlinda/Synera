@@ -70,9 +70,13 @@ Widgets.
   range, use BFS to move one tile toward a reachable attack position when out of
   range, apply attack-speed cooldowns, and are removed from the board when
   defeated.
+- Battle start safety: battle can only start when at least one player unit and
+  one enemy unit are on the board.
 - Battle state: player units are restored to their pre-battle HP, mana, state,
   and positions after settlement, while enemy units are cleared before the next
   round.
+- Battle settlement: normal results use the actual living units after battle;
+  timeout settlement falls back to temporary combat-power comparison.
 - Battle feedback: the battle page shows recent movement, attack, and defeat
   log entries.
 - Settlement: wins grant the current temporary round rewards; losses grant a

@@ -125,10 +125,19 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     connect(mainGamePage, &MainGamePage::startBattleClicked, this, [this]() {
+        if (!gameManager->canStartBattle()) {
+            prepareMainGamePage();
+            return;
+        }
         pageManager->switchTo(PageId::BattleCountdown);
         battleCountdownPage->startCountdown(3);
     });
     connect(battleCountdownPage, &BattleCountdownPage::countdownFinished, this, [this]() {
+        if (!gameManager->canStartBattle()) {
+            prepareMainGamePage();
+            pageManager->switchTo(PageId::MainGame);
+            return;
+        }
         gameManager->beginBattlePhase();
         activeBattleRound = gameManager->currentRound();
         prepareMainGamePage();

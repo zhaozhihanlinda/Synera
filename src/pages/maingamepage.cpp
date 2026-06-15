@@ -451,7 +451,7 @@ void MainGamePage::refreshPhaseUi()
                 .arg(hintText));
         deployRuleLabel->show();
         actionButton->setText(QStringLiteral("开始战斗"));
-        actionButton->setEnabled(gameManager && gameManager->currentPopulation() > 0);
+        actionButton->setEnabled(gameManager && gameManager->canStartBattle());
         actionButton->setCursor(actionButton->isEnabled() ? Qt::PointingHandCursor : Qt::ForbiddenCursor);
         actionButton->show();
         returnShopButton->show();
@@ -460,7 +460,12 @@ void MainGamePage::refreshPhaseUi()
         if (gameManager && gameManager->currentPopulation() == 0) {
             deployWarningLabel->setText(QStringLiteral("至少部署 1 个单位后才能开始战斗。"));
             deployWarningLabel->show();
+        } else if (gameManager && gameManager->board().activeEnemyUnitCount() == 0) {
+            deployWarningLabel->setText(QStringLiteral("请先选择本轮敌军后再开始战斗。"));
+            deployWarningLabel->show();
         } else if (deployWarningLabel->text() == QStringLiteral("至少部署 1 个单位后才能开始战斗。")) {
+            deployWarningLabel->hide();
+        } else if (deployWarningLabel->text() == QStringLiteral("请先选择本轮敌军后再开始战斗。")) {
             deployWarningLabel->hide();
         }
         battleTimer->stop();
